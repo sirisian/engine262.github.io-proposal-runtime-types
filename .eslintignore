@@ -1,4 +1,0 @@
-!.eslintrc.js
-src/types.d.ts
-lib/*
-src/harness.mjs

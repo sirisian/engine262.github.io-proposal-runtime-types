@@ -8,6 +8,7 @@ import { mkdir, readdir, readFile, rm, writeFile, access } from 'fs/promises'
 import { LOCALES } from './src/devtools/generated/locales.js'
 
 const libRoot = fileURLToPath(new URL('./node_modules/chrome-devtools-frontend', import.meta.url))
+const TOKEN_STYLESHEETS = ['application_tokens.css', 'design_system_tokens.css']
 const exists = async (path: string) => {
     try {
         await access(path)
@@ -35,6 +36,7 @@ export default defineConfig({
     input: {
         index: './src/devtools/index.mts',
         formatter_worker: join(libRoot, 'front_end/entrypoints/formatter_worker/formatter_worker-entrypoint.ts'),
+        heap_snapshot_worker: join(libRoot, 'front_end/entrypoints/heap_snapshot_worker/heap_snapshot_worker-entrypoint.ts'),
     },
     output: {
         dir: './lib/devtools/',
@@ -42,6 +44,7 @@ export default defineConfig({
         entryFileNames(chunkInfo) {
             if (chunkInfo.name === 'index') return 'index.js'
             if (chunkInfo.name === 'formatter_worker') return 'formatter_worker.js'
+            if (chunkInfo.name === 'heap_snapshot_worker') return 'heap_snapshot_worker.js'
             throw new Error(`Unexpected chunk name ${chunkInfo.name}`)
         },
     },
@@ -79,6 +82,9 @@ export default defineConfig({
             async load(id) {
                 if (id === join(libRoot, 'front_end/core/platform/node/node.ts')) {
                     return 'throw new Error("Unsupported platform")'
+                }
+                if (id === join(libRoot, 'front_end/models/ai_assistance/skills/SkillRegistry.ts')) {
+                    return 'export const SKILLS = {};'
                 }
                 if (id === '\0virtual:front_end/panels/timeline/EasterEgg.js') {
                     return 'export const SHOULD_SHOW_EASTER_EGG = true;'
@@ -143,7 +149,7 @@ export default defineConfig({
             },
         },
         nodeResolve(),
-        (commonjs.default || commonjs)(),
+        commonjs(),
         swc(
             defineRollupSwcOption({
                 extensions: ['.mts', '.ts'],
@@ -171,6 +177,14 @@ export default defineConfig({
                     )
                 }
                 await Promise.all(promises)
+                for (const tokenStylesheet of TOKEN_STYLESHEETS) {
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: tokenStylesheet,
+                        name: tokenStylesheet,
+                        source: await readFile(join(libRoot, 'front_end', tokenStylesheet)),
+                    })
+                }
             },
         },
         {

@@ -1,7 +1,7 @@
 /// <reference path="../types.d.ts" />
 import { InspectorFrontendHostInstance } from 'chrome-devtools-frontend/front_end/core/host/InspectorFrontendHost.ts'
+import * as Platform from 'chrome-devtools-frontend/front_end/core/platform/platform.ts'
 import { FormatterWorkerPool } from 'chrome-devtools-frontend/front_end/models/formatter/FormatterWorkerPool.ts'
-import * as UI from 'chrome-devtools-frontend/front_end/ui/legacy/legacy.ts'
 
 export function fixDOM() {
     ShadowRoot.prototype.getSelection = ShadowRoot.prototype.getComponentSelection
@@ -80,11 +80,16 @@ export function fixChromeDevtoolsFrontend() {
             devToolsGlobalAiButton: { enabled: false },
         });
     }
-    // Remove not implemented panels
-    UI.ViewManager.maybeRemoveViewExtension('heap-profiler')
 }
 
 export function fixWorker() {
+    const createWorker = Platform.HostRuntime.HOST_RUNTIME.createWorker.bind(Platform.HostRuntime.HOST_RUNTIME)
+    Platform.HostRuntime.HOST_RUNTIME.createWorker = (url) => {
+        if (url.endsWith('/entrypoints/heap_snapshot_worker/heap_snapshot_worker-entrypoint.js')) {
+            return createWorker(new URL('/lib/devtools/heap_snapshot_worker.js', import.meta.url).toString())
+        }
+        return createWorker(url)
+    }
     FormatterWorkerPool.instance({
         forceNew: true,
         entrypointURL: new URL('/lib/devtools/formatter_worker.js', import.meta.url).toString(),
