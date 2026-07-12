@@ -1,0 +1,37 @@
+---
+title: Twoslash
+description: Inspect TypeScript types and expected diagnostics in documentation examples.
+---
+
+# Twoslash
+
+Ordinary TypeScript blocks receive syntax highlighting. Adding the `twoslash` metadata also runs TypeScript analysis during the documentation build and embeds its results in the generated HTML.
+
+## Type query
+
+```ts twoslash
+interface Completion {
+  value: string;
+  done: boolean;
+}
+
+const completion: Completion = { value: "ok", done: true };
+
+completion;
+// ^?
+```
+
+## Expected diagnostic
+
+```ts twoslash
+// @errors: 2322
+const answer: number = "forty-two";
+```
+
+## Ordinary code block
+
+This block is highlighted but is not passed through Twoslash:
+
+```ts
+const greeting: string = "hello";
+```

@@ -1,0 +1,12 @@
+packages:
+  - playground
+  - docs-site
+  - scripts
+  - lib
+overrides:
+  zod: 4.1.12
+allowBuilds:
+  "@swc/core": false
+  sharp: false
+minimumReleaseAgeExclude:
+  - hono@4.12.30

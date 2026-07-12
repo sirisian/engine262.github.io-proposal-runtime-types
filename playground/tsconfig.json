@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "module": "preserve",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "target": "esnext",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["./devtools/**/*.mts", "./classic/**/*.mts"]
+}

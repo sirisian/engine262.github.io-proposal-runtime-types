@@ -1,0 +1,33 @@
+---
+title: Getting Started
+description: Install and start using engine262.
+---
+
+# Getting Started
+
+Install engine262 from npm:
+
+```sh
+npm install engine262
+```
+
+## Evaluate a script
+
+Create a realm, install the global bindings, and evaluate source text:
+
+```ts twoslash
+import { Agent, ManagedRealm, setSurroundingAgent } from "@engine262/engine262";
+
+const agent = new Agent();
+setSurroundingAgent(agent);
+
+const realm = new ManagedRealm();
+const result = realm.evaluateScriptSkipDebugger("1 + 2");
+
+result;
+// ^?
+```
+
+This minimal realm example establishes the runtime context required to evaluate ECMAScript source.
+
+For interactive exploration, open the [classic playground](/) or the [DevTools playground](/devtools.html).

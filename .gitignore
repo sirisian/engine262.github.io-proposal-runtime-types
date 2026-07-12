@@ -1,6 +1,13 @@
 node_modules
+.pnpm-store
 .env
 
+*.tsbuildinfo
 .vercel
 lib/chrome-devtools-frontend
 lib/engine262
+docs-site/.next/
+docs-site/out/
+docs-site/_pagefind/
+dist/
+playground/dist/

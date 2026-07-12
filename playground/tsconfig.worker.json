@@ -1,0 +1,14 @@
+// Note: if we run check on the whole project, it will also check the chrome-devtools-frontend package
+// there is no way to exclude it (because those files are .ts, not .d.ts files).
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "module": "preserve",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "target": "esnext",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["./classic/**.mts", "./devtools/262_worker.mts"]
+}

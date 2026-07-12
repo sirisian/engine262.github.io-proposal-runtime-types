@@ -1,0 +1,22 @@
+{
+  "name": "@engine262/docs-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "next typegen && tsc --noEmit && node scripts/check-twoslash.ts",
+    "dev": "next dev --port 10262",
+    "build": "next build"
+  },
+  "dependencies": {
+    "next": "16.2.10",
+    "nextra": "4.6.1",
+    "nextra-theme-docs": "4.6.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "twoslash": "0.3.9"
+  },
+  "devDependencies": {
+    "@engine262/engine262": "workspace:*",
+    "@types/react": "^19.2.7"
+  }
+}

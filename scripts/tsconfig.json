@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "target": "esnext",
+    "module": "nodenext",
+    "strict": true
+  },
+  "include": ["./*.mts"]
+}

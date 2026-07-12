@@ -1,0 +1,35 @@
+:root {
+  --x-color-primary-600: #3757c5;
+  --x-color-primary-500: #4f6ed7;
+}
+
+.engine262-logo {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.55rem;
+}
+
+.engine262-mark {
+  align-items: center;
+  background: var(--x-color-primary-600);
+  border-radius: 0.35rem;
+  color: white;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 800;
+  height: 1.6rem;
+  justify-content: center;
+  letter-spacing: -0.04em;
+  width: 1.8rem;
+}
+
+.x\:prose code {
+  font-variant-ligatures: none;
+}
+
+.not-found {
+  margin: 20vh auto;
+  max-width: 36rem;
+  padding: 1.5rem;
+  text-align: center;
+}

@@ -1,0 +1,48 @@
+name: Site CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Clone engine262
+        uses: actions/checkout@v7
+        with:
+          repository: engine262/engine262
+          ref: main
+          path: engine262
+      - name: Clone test262
+        uses: actions/checkout@v7
+        with:
+          repository: tc39/test262
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: harness
+          sparse-checkout-cone-mode: true
+          path: engine262/test/test262/test262
+      - name: Build engine262
+        working-directory: engine262
+        run: npm ci && npm run build
+      - name: Link engine262
+        run: ln -s "$GITHUB_WORKSPACE/engine262" lib/engine262
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: dist
+          include-hidden-files: true

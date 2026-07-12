@@ -1,0 +1,14 @@
+{
+  "name": "@engine262/engine262",
+  "private": "true",
+  "exports": {
+    ".": {
+      "types": "./engine262/lib/engine262.d.mts",
+      "import": "./engine262/lib/engine262.mjs"
+    },
+    "./inspector": {
+      "types": "./engine262/lib/inspector.d.mts",
+      "import": "./engine262/lib/inspector.mjs"
+    }
+  }
+}
