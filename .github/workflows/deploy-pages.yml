@@ -63,9 +63,17 @@ jobs:
           
           # 3. Rewrite absolute paths in HTML files (root level -> ./ )
           find dist -type f -name "*.html" -exec sed -i 's|/engine262/|./engine262/|g' {} +
+          find dist -type f -name "*.html" -exec sed -i 's|/classic/|./classic/|g' {} +
+          find dist -type f -name "*.html" -exec sed -i 's|/devtools/|./devtools/|g' {} +
           
-          # 4. Rewrite absolute paths in JS files (inside classic/ and devtools/ folders -> ../ )
+          # 4. Rewrite absolute paths in JS files targeting the engine -> ../engine262/
           find dist -type f -name "*.js" -exec sed -i 's|/engine262/|../engine262/|g' {} +
+          
+          # 5. Fix Web Worker paths! (JS files looking for their own folders)
+          # Changes "/devtools/262_worker.js" into "./262_worker.js"
+          find dist/devtools -type f -name "*.js" -exec sed -i 's|/devtools/|./|g' {} +
+          # Changes "/classic/worker.js" into "./worker.js"
+          find dist/classic -type f -name "*.js" -exec sed -i 's|/classic/|./|g' {} +
       
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
