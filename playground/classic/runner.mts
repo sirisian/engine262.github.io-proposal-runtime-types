@@ -9,7 +9,7 @@ function respawn(first = false) {
   if (worker) {
     worker.terminate();
   }
-  worker = new Worker(new URL("/classic/worker.js", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   worker.addEventListener("message", ({ data }) => {
     console.log("@MAIN", data);
 
