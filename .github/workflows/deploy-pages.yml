@@ -24,12 +24,14 @@ jobs:
         with:
           node-version: 26
           cache: pnpm
+          
       - name: Clone engine262
         uses: actions/checkout@v7
         with:
-          repository: engine262/engine262
-          ref: main
+          repository: sirisian/engine262-proposal-runtime-types
+          ref: proposal-runtime-types
           path: engine262
+          
       - name: Clone test262
         uses: actions/checkout@v7
         with:
@@ -39,14 +41,18 @@ jobs:
           sparse-checkout: harness
           sparse-checkout-cone-mode: true
           path: engine262/test/test262/test262
+          
       - name: Build engine262
         working-directory: engine262
         run: npm ci && npm run build
+        
       - name: Link engine262
         run: ln -s "$GITHUB_WORKSPACE/engine262" lib/engine262
+        
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run check
       - run: pnpm run build
+      
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
