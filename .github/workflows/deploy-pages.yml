@@ -52,6 +52,20 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run check
       - run: pnpm run build
+
+      - name: Inject engine and fix paths for GitHub Pages
+        run: |
+          # 1. Create the engine262 folder inside the final deployment directory
+          mkdir -p dist/engine262
+          
+          # 2. Copy the compiled core engine files into it so GitHub Pages hosts them
+          cp -r engine262/lib/* dist/engine262/
+          
+          # 3. Rewrite absolute paths in HTML files (root level -> ./ )
+          find dist -type f -name "*.html" -exec sed -i 's|/engine262/|./engine262/|g' {} +
+          
+          # 4. Rewrite absolute paths in JS files (inside classic/ and devtools/ folders -> ../ )
+          find dist -type f -name "*.js" -exec sed -i 's|/engine262/|../engine262/|g' {} +
       
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
