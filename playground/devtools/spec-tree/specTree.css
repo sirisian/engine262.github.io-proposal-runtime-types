@@ -68,6 +68,37 @@
   white-space: normal;
 }
 
+.spec-section-row {
+  display: inline-flex;
+  align-items: center;
+}
+
+.spec-example-button {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--sys-color-neutral-outline);
+  border-radius: 4px;
+  background: var(--sys-color-cdt-base-container);
+  color: var(--sys-color-on-surface);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.spec-example-button:hover {
+  background: var(--sys-color-state-hover-on-subtle);
+}
+
+.spec-example-button:active {
+  background: var(--sys-color-state-ripple-neutral-on-subtle);
+}
+
+.spec-example-button:focus-visible {
+  outline: 2px solid var(--sys-color-primary);
+  outline-offset: 1px;
+}
+
 .spec-example-head {
   display: flex;
   align-items: center;

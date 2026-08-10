@@ -1,7 +1,6 @@
 /// <reference path="../types.d.ts" />
 import * as UI from "chrome-devtools-frontend/front_end/ui/legacy/legacy.ts";
 import * as Main from "chrome-devtools-frontend/front_end/entrypoints/main/main.ts";
-import { Variant } from "chrome-devtools-frontend/front_end/ui/components/buttons/Button.ts";
 import { SPEC_BASE_URL, SPEC_OUTLINE, type SpecSection } from "../generated/spec-outline.mts";
 import { EXAMPLES_BY_SECTION } from "./examples/index.mts";
 import type { SpecExample } from "./examples/types.mts";
@@ -103,11 +102,12 @@ class SectionTreeElement extends UI.TreeOutline.TreeElement {
     this.section = section;
     this.#expanded = expanded;
     this.setExpandable(false); // becomes expandable when children append
-    const title = document.createDocumentFragment();
-    const label = document.createElement("span");
-    label.classList.add("spec-section-title");
+    // A single element, not a DocumentFragment: TreeElement keeps whatever it
+    // is given as its titleElement, and appending a fragment empties it.
+    const title = document.createElement("span");
+    title.classList.add("spec-section-row");
+    const label = el(title, "span", "spec-section-title");
     label.textContent = section.title;
-    title.appendChild(label);
     const link = document.createElement("a");
     link.classList.add("spec-section-link");
     link.href = `${SPEC_BASE_URL}#${section.id}`;
@@ -171,6 +171,19 @@ class ExampleTreeElement extends UI.TreeOutline.TreeElement {
   }
 }
 
+function addButton(parent: HTMLElement, label: string, onClick: () => void): HTMLButtonElement {
+  const button = el(parent, "button", "spec-example-button");
+  button.type = "button";
+  button.textContent = label;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onClick();
+  });
+  return button;
+}
+
 function renderExample(example: SpecExample): HTMLElement {
   const root = document.createElement("div");
   root.classList.add("spec-example");
@@ -180,31 +193,14 @@ function renderExample(example: SpecExample): HTMLElement {
   title.textContent = example.title;
   title.title = example.title;
 
-  const copyButton = el(head, "devtools-button") as HTMLElement & {
-    iconName: string;
-    variant: Variant;
-  };
-  copyButton.iconName = "copy";
-  copyButton.variant = Variant.ICON;
-  copyButton.title = S.engine262(L.engine262.specCopy);
-  copyButton.setAttribute("aria-label", S.engine262(L.engine262.specCopy));
-  copyButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    void copyExample(example);
-  });
-
-  const playButton = el(head, "devtools-button") as HTMLElement & {
-    iconName: string;
-    variant: Variant;
-  };
-  playButton.iconName = "play";
-  playButton.variant = Variant.ICON;
-  playButton.title = S.engine262(L.engine262.specPlay);
-  playButton.setAttribute("aria-label", S.engine262(L.engine262.specPlay));
-  playButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    void playExample(example);
-  });
+  // Plain buttons rather than <devtools-button>: that component is a
+  // form-associated custom element whose field initializers call
+  // attachInternals(), which is not supported during the synchronous
+  // construction document.createElement() performs. Every other use of it in
+  // the frontend goes through a Lit template, which upgrades on connection
+  // instead. These two need no more than a button.
+  addButton(head, S.engine262(L.engine262.specCopy), () => void copyExample(example));
+  addButton(head, S.engine262(L.engine262.specPlay), () => void playExample(example));
 
   if (example.summary) {
     const summary = el(root, "div", "spec-example-summary");
@@ -261,21 +257,33 @@ function saveExpanded(expanded: Set<string>): void {
  * vertical separator, by wrapping InspectorView in a SplitWidget at the point
  * SimpleApp attaches it to the document. The sidebar width persists via the
  * split widget's setting. Call before MainImpl is constructed.
+ *
+ * Building the sidebar is deliberately fallible: if anything in the panel
+ * throws, the inspector is presented on its own rather than not at all, since
+ * a broken example tree must not cost the user their devtools.
  */
 export function installSpecTreeDock(): void {
-  const original = Main.SimpleApp.SimpleApp.prototype.presentUI;
   Main.SimpleApp.SimpleApp.prototype.presentUI = function presentUI(document: Document): void {
-    void original;
     const rootView = new UI.RootView.RootView();
-    const split = new UI.SplitWidget.SplitWidget(
-      /* isVertical */ true,
-      /* secondIsSidebar */ true,
-      "engine262-spec-tree-split-view-state",
-      /* defaultSidebarWidth */ 380,
-    );
-    split.setMainWidget(UI.InspectorView.InspectorView.instance());
-    split.setSidebarWidget(SpecTreePanel.instance());
-    split.show(rootView.element);
+    const inspectorView = UI.InspectorView.InspectorView.instance();
+    let attached = false;
+    try {
+      const split = new UI.SplitWidget.SplitWidget(
+        /* isVertical */ true,
+        /* secondIsSidebar */ true,
+        "engine262-spec-tree-split-view-state",
+        /* defaultSidebarWidth */ 380,
+      );
+      split.setMainWidget(inspectorView);
+      split.setSidebarWidget(SpecTreePanel.instance());
+      split.show(rootView.element);
+      attached = true;
+    } catch (error) {
+      console.error("engine262: the specification tree failed to load", error);
+    }
+    if (!attached) {
+      inspectorView.show(rootView.element);
+    }
     rootView.attachToDocument(document);
     rootView.focus();
   };
