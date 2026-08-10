@@ -193,3 +193,46 @@ f(ref v);             // TypeError: the argument bound by ref to "x" does
 
 Writing an already-typed value (`x = (2 := uint8)`) round-trips correctly;
 the chapter example uses that spelling and cites this entry.
+
+## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
+
+Two stacked failures, found evaluating what the engine's own expansion tests
+only compile. First, expansion does not consume the replacement-decorator
+invocation: the expanded module still contains `@a ...` even when the macro
+replaced the decorated tokens entirely. Second, evaluating that leftover
+reads the preprocessor import's binding, which was created but never
+initialized, and the engine dies on a HOST assertion (GetBindingValue:
+`S === Value.true`) rather than raising any guest error:
+
+```js
+defineModule("macros.js", 'export function id(t) { return t; }');
+defineModule("main.js",
+  'import { id } from "macros.js" with { preprocessor: "true" };\n@id class C {}');
+import("main.js");   // AssertError: S === Value.true (host crash)
+```
+
+The crash is the same when the macro removes the class outright, so the
+leftover decorator is the trigger. decorators/expansion.test.mts masks the
+first failure by slicing its output at the first `class` and never
+evaluating. Because playing such an example would kill the playground
+worker, the six pipeline sections (replacement-decorators,
+replacementdecoratornames, expansion, when-expansion-happens,
+applyreplacementdecorator, syntax-replacement) demonstrate their machinery
+on the working substrate instead and cite this entry; loading a
+preprocessor module without applying its macros works and is what
+sec-preprocessor-modules ships.
+
+## D14 - Getter shape retrieval returns the setter for a shared name (2026-08-10)
+
+`#sec-retrieval-overloaded-targets`: the shape parameter decides which of
+several same-named members a retrieval answers. With a getter and a setter
+sharing one name, asking for the getter answers the setter:
+
+```js
+class A { get v(): uint8 { return 1; } set v(x: uint8) {} }
+Reflect.getReflection.<Reflect.ClassGetter, A>("v").kind;  // 'ClassSetter'
+```
+
+Getter-only and setter-only classes answer correctly (the suite tests only
+those), so this is last-wins where shape-filtering is specified. The
+retrieval example uses distinct members and cites this entry.

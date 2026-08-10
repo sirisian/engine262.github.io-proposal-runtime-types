@@ -14,13 +14,14 @@ import { typeUniverse } from "./type-universe.mts";
 import { referencesAndRegexes } from "./references-regexes.mts";
 import { generics } from "./generics.mts";
 import { dependentAndMetadata } from "./dependent-metadata.mts";
+import { decorators } from "./decorators.mts";
 
 /**
  * Every example, in tree order. Chapter modules are added here as coverage
  * phases land; scripts/validate-examples.mts runs this whole list and the
  * coverage checker (final phase) diffs it against the generated outline.
  */
-export const ALL_EXAMPLES: SpecExample[] = [...foundations, ...conversions, ...enforcement, ...declarations, ...operators, ...functions, ...classes, ...reflection, ...numericLibrary, ...arraysAndExtensions, ...grammar, ...typeUniverse, ...referencesAndRegexes, ...generics, ...dependentAndMetadata];
+export const ALL_EXAMPLES: SpecExample[] = [...foundations, ...conversions, ...enforcement, ...declarations, ...operators, ...functions, ...classes, ...reflection, ...numericLibrary, ...arraysAndExtensions, ...grammar, ...typeUniverse, ...referencesAndRegexes, ...generics, ...dependentAndMetadata, ...decorators];
 
 const bySection = new Map<string, SpecExample[]>();
 for (const example of ALL_EXAMPLES) {

@@ -28,7 +28,11 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const engineRoot = pathToFileURL(resolve(import.meta.dirname, "../lib/engine262/lib/")).href;
-const { Agent, ManagedRealm, setSurroundingAgent, inspect } = await import(`${engineRoot}/engine262.mjs`);
+const {
+  Agent, ManagedRealm, setSurroundingAgent, inspect,
+  composeModuleLoaders, createBuiltinModuleLoader, CreateBuiltinFunction,
+  CreateNonEnumerableDataPropertyOrThrow, JSStringValue, ThrowCompletion, Value,
+} = await import(`${engineRoot}/engine262.mjs`);
 const { createConsole } = await import(`${engineRoot}/inspector.mjs`);
 
 import { SPEC_OUTLINE, type SpecSection } from "../playground/devtools/generated/spec-outline.mts";
@@ -46,6 +50,38 @@ async function runExample(example: Pick<SpecExample, "code" | "mode" | "features
   const agent = new Agent({ features });
   setSurroundingAgent(agent);
   const realm = new ManagedRealm();
+  if (features.includes("virtual-module-loader")) {
+    // Mirrors playground/devtools/262_worker.mts so examples exercising
+    // preprocessor modules validate the same way they play.
+    const virtualModuleSourceCache = new Map<string, string>();
+    agent.hostDefinedOptions.hostHooks ??= {};
+    agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([
+      createBuiltinModuleLoader({
+        loadBuiltinModule: (moduleRequest: { Specifier: string }, _realm: unknown, callback: (r: unknown) => void) => {
+          if (virtualModuleSourceCache.has(moduleRequest.Specifier)) {
+            callback(virtualModuleSourceCache.get(moduleRequest.Specifier));
+            return;
+          }
+          callback(ThrowCompletion(Value(`No virtual module found for specifier ${moduleRequest.Specifier}`)));
+        },
+      }),
+    ]);
+    const pop = realm.pushTopContext();
+    const defineModule = CreateBuiltinFunction(
+      function* defineModule([specifier, source]: [unknown, unknown]) {
+        if (!(specifier instanceof JSStringValue) || !(source instanceof JSStringValue)) {
+          return ThrowCompletion(Value("defineModule expects two strings"));
+        }
+        virtualModuleSourceCache.set(specifier.stringValue(), source.stringValue());
+        return Value.undefined;
+      },
+      2,
+      Value("defineModule"),
+      [],
+    );
+    CreateNonEnumerableDataPropertyOrThrow(realm.GlobalObject, Value("defineModule"), defineModule);
+    pop?.();
+  }
   const output: string[] = [];
   createConsole(realm, {
     default(_method: string, args: unknown[]) {
@@ -82,7 +118,9 @@ if (probeIndex !== -1) {
   if (!path) throw new Error("--probe requires a file path");
   const code = await readFile(path, "utf8");
   const asModule = process.argv.includes("--module");
-  const result = await runExample({ code, mode: asModule ? "module" : undefined });
+  const featuresIndex = process.argv.indexOf("--features");
+  const extraFeatures = featuresIndex !== -1 ? process.argv[featuresIndex + 1].split(",") : undefined;
+  const result = await runExample({ code, mode: asModule ? "module" : undefined, features: extraFeatures });
   console.log(`completion: ${result.completionType}`);
   if (result.errorText) console.log(`error: ${result.errorText}`);
   if (result.output) console.log(result.output);
