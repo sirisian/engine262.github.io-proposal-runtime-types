@@ -1,16 +1,72 @@
 # Known engine/spec divergences found while authoring examples
 
-Hand-maintained. Each entry is a construct the specification sanctions that the
-engine (lib/engine262 as of the date noted) rejects or mishandles, discovered
-while writing tree examples. These are inputs to the feedback loop this
-playground exists for: file them against engine262-proposal-runtime-types or
-the spec, whichever is wrong, and delete the entry once resolved. Examples
-affected by an entry are written with a working alternative spelling and
-reference the entry number in a comment; revisit them when the entry closes.
+Hand-maintained. Each entry is something the specification sanctions that the
+engine (lib/engine262 as of the date noted) rejects or mishandles, or - where
+marked (spec) - something the specification itself leaves unreachable. All
+were found while writing the specification tree's examples, by running every
+example against the built engine.
+
+This file is the work list. Working through it top to bottom should end with
+every example in the tree written in its natural spelling rather than a
+workaround. For each entry: fix the engine (or the spec), then open the
+"affected examples" listed under it, restore the natural spelling, drop the
+citation from the summary, re-run `node scripts/validate-examples.mts`, and
+delete the entry.
+
+Every example that works around an entry cites it by number in its summary, so
+`grep -rn "D<n>" *.mts` finds the sites. An entry with no affected examples is
+one whose sections currently ship an honest "not yet in the engine" example
+instead - those need rewriting into real examples when the entry closes, and
+say so.
 
 Automated findings (examples that run but print something unexpected) go to
-FINDINGS.md, written by scripts/validate-examples.mts. This file is for
-constructs that cannot ship as examples at all.
+FINDINGS.md, written by scripts/validate-examples.mts. That file is generated;
+this one is not.
+
+## Index
+
+| # | Summary | Side | Affected examples |
+| --- | --- | --- | --- |
+| D1 | Recursive type alias throws ReferenceError | engine | sec-sametypewithassumptions, sec-type-alias-declarations |
+| D2 | Tuple form of the `type` operator evaluates to undefined | engine | sec-gettypeobject, sec-evaluatebuildercall |
+| D3 | Parenthesized/union operands of the `type` operator misparse | engine | sec-types-in-expression-position |
+| D4 | Tuple bindings have no default value | engine | sec-defaultvalueof |
+| D5 | Unary `+` strips the numeric type | engine | sec-unary-operators-for-typed-values |
+| D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
+| D7 | Writes through a `readonly` member are not refused | engine | sec-object-types |
+| D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
+| D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
+| D10 | Imaginary literals and complex types unimplemented | engine | sec-imaginary-literals, sec-complex-types, sec-complex-numbers (all ship refusals) |
+| D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
+| D12 | Literal written through a typed `ref` untypes the binding | engine | sec-references-and-borrowing |
+| D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
+| D14 | Getter shape retrieval returns the setter | engine | sec-retrieval-overloaded-targets |
+| D15 | Deferred application unusable as a binding's type | engine | sec-deferred-applications |
+| D16 | Object literal freshness is not enforced | engine | sec-literal-freshness |
+| D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
+| D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
+| D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
+
+## Deferred by the engine, tracked here for the same reason
+
+These are not divergences - the engine's own conformance matrix
+(test/engine262/runtime-types/numeric-library/conformance-matrix.test.mts)
+records them as deliberately deferred - but the tree's examples for these
+sections currently demonstrate their absence, and should become real examples
+when the features land:
+
+- `Reflect.inferSlot` and `Reflect.matchType` (`sec-structural-matching`). The
+  clause itself calls the operation optional.
+- The reflected `origin` property (`sec-provenance`). Provenance is
+  implemented as a host-facing channel instead, and the specification was
+  changed to make it so; the example asserts that identity does not read
+  origins, which stays true either way.
+- The complex value level, which is D10's other half.
+
+Also worth knowing when reading the tree: the evaluation budget
+(`sec-evaluation-budget`) is host-configured through ManagedRealm and cannot
+be exercised from the playground at all, so its example demonstrates that
+ordinary programs are unaffected and says so in its summary.
 
 ## D1 - Recursive type alias throws ReferenceError (2026-08-09)
 
@@ -29,9 +85,11 @@ lists exist to terminate exactly this comparison) and part of
 
 ## D2 - The tuple form type [ ... ] in expression position evaluates to undefined (2026-08-09)
 
-The literal form (type 3) and the object form (type { x: uint8 }) evaluate to
-their interned Type Objects in expression position; the tuple form evaluates to
-undefined, at run time and inside EvaluateBuilderCall alike:
+`#sec-types-in-expression-position` gives the `type` operator the whole Type
+production, and `#sec-gettypeobject` interns the result. The literal form
+(`type 3`) and the object form (`type { x: uint8 }`) do evaluate to their
+interned Type Objects; the tuple form evaluates to undefined, at run time and
+inside EvaluateBuilderCall alike:
 
 ```js
 typeof (type 3);              // 'object'
@@ -46,7 +104,9 @@ Beware vacuous comparisons while this is open: (type [uint8]) === (type
 printing "undefined" is the tell. Examples use aliases or Reflect.makeType
 for tuples in expression position.
 
-
+Affected examples: `sec-gettypeobject` (shows interning with the object form
+instead of the tuple form) and `sec-evaluatebuildercall` (compares a built
+tuple against an alias rather than a tuple expression).
 ## D3 - Parenthesized and bare-union operands of the type operator misparse in expression position (2026-08-09, confirmed 2026-08-10)
 
 Confirmed against the grammar: `#sec-types-in-expression-position` defines
@@ -55,8 +115,16 @@ production includes parenthesized types (used freely in type position, e.g.
 `(uint8 | string) | uint16` in an alias). So `type (uint8 | string)` in
 expression position is sanctioned; the engine parses the parenthesized part
 as a value expression instead (`uint8 | string` as values numeric-ors to 0,
-then the alias reports "0 is not assignable"). Aliases are the working
-spelling and are what examples use. Same family as D2's tuple operand.
+then the alias reports "0 is not assignable"):
+
+```js
+type U = uint8 | string;
+(type (uint8 | string)) === U;   // TypeError: 0 is not assignable to "type"
+U === (uint8 | string);          // the alias form works, and is what the
+                                 // examples use
+```
+
+Same family as D2's tuple operand.
 
 ## D4 - Tuple bindings have no default value (2026-08-10)
 
@@ -87,6 +155,8 @@ Reflect.typeOf(+(7 := uint8)) === number;  // true; spec: uint8, unchanged
 Unary `-` and `~` behave as specified (wrapping). The unary-operators example
 demonstrates those two and cites this entry.
 
+Affected examples: `sec-unary-operators-for-typed-values`, which demonstrates
+`-` and `~` only. Add the unary `+` line when this closes.
 ## D6 - Object type identity is member-order-sensitive (2026-08-10)
 
 `#sec-sameobjecttype` looks a property up in the other record by [[Key]], so
@@ -105,6 +175,8 @@ Reflect.isAssignable(B, A);       // true - assignability is order-insensitive,
 The sameobjecttype example uses an optionality difference (correctly false)
 and cites this entry.
 
+Affected examples: `sec-sameobjecttype`, which distinguishes types by
+optionality instead of by member order.
 ## D7 - Writes through a readonly object-type member are not refused (2026-08-10)
 
 `#sec-isobjectsubtype` makes readonly members covariant "since a value read
@@ -119,6 +191,9 @@ v.x = 2;      // succeeds; should be a checker error
 v.x;          // 2
 ```
 
+Affected examples: `sec-object-types`, which shows the reflected flag and
+readonly's covariance but does not attempt a write. Add the refused write
+when this closes.
 ## D8 - Writable members are wrongly covariant in depth (2026-08-10)
 
 `#sec-isobjectsubtype` requires SameTypeWithAssumptions for a writable member
@@ -135,10 +210,14 @@ This is exactly the unsoundness the spec's own note names: through the
 supertype view a string could be written into a slot the program believes
 holds a uint8. Readonly depth covariance (D7's flag) works correctly.
 
+Affected examples: `sec-generic-variance` demonstrates invariance with a
+nominal generic, since the structural form is wrongly accepted here. The
+depth rule itself has no example until this closes.
 ## D9 - int64/uint64 values are double-backed, not exact (2026-08-10)
 
-The integer types are exact N-bit two's complement. Past 2^53 the engine
-stores them in a float64:
+`#sec-integer-types`: the integer types are exact N-bit two's complement, and
+`#sec-memory-layout` gives `int64` a 64-bit layout. Past 2^53 the engine
+stores the value in a float64 instead:
 
 ```js
 (1152921504606846976 := int64) === (1152921504606846977 := int64);  // true
@@ -150,10 +229,21 @@ Number.isSafeInteger correctly answers false for these, but the stored value
 itself has already lost the low bits. Examples avoid printing int64 values
 beyond 2^53.
 
+Affected examples: `sec-numeric-predicates` and
+`sec-numeric-types-of-this-proposal`, which keep their printed values below
+2^53. An exact-64-bit example belongs at `sec-integer-types` once this
+closes.
 ## D10 - Imaginary literals and the complex types are unimplemented (2026-08-10)
 
-`#sec-imaginary-literals` and `#sec-complex-types`: `3i` is a SyntaxError and
-the complex type objects are absent. The engine's own suite documents this as
+`#sec-imaginary-literals` and `#sec-complex-types`:
+
+```js
+let z = 3i;              // SyntaxError: Unexpected token
+typeof complex64;        // 'undefined'
+typeof Math.conj;        // 'undefined'
+```
+
+The imaginary literal does not lex and the complex type objects are absent. The engine's own suite documents this as
 an open gap (type-universe/extended-numeric-types.test.mts: "the `complex`
 type, and the imaginary literal remain refusals, documents the gap"). The
 sec-complex-types example ships the refusal, labeled, so the tree reflects
@@ -166,9 +256,14 @@ parameter may be declared covariant or contravariant, as it may in C# and
 Kotlin") and defines the polarity well-formedness rules, but the
 TypeParameter production of `#sec-type-parameters` is
 `BindingIdentifier TypeParameterConstraint? TypeParameterDefault?` - there is
-no spelling that declares the variance. The engine refusing `out T` /
-`in T` is consistent with the grammar as written; the gap is on the spec
-side. The sec-generic-variance example demonstrates the invariance default,
+no spelling that declares the variance. 
+```js
+interface Producer<out T> { get(): T; }
+// SyntaxError: Unexpected token - correctly so; no production admits it
+```
+
+The engine refusing `out T` / `in T` is consistent with the grammar as
+written; the gap is on the spec side. The sec-generic-variance example demonstrates the invariance default,
 which is expressible.
 
 Note for D8 while it is open: the wrongful writable-depth covariance reaches
@@ -178,9 +273,10 @@ so nominal generics are the reliable way to demonstrate invariance.
 
 ## D12 - A literal written through a typed ref parameter untypes the binding (2026-08-10)
 
-A literal in a typed position takes the position's type, and `ref x: uint8`
-is such a position. The engine stores a plain Number instead, which then
-breaks the caller's binding's own invariant:
+`#sec-literal-propagation`: a literal takes the type its position requires,
+and a `ref x: uint8` parameter is such a position
+(`#sec-reference-parameters-and-arguments`). The engine stores a plain Number
+instead, which then breaks the caller's binding's own invariant:
 
 ```js
 function f(ref x: uint8) { x = 2; }
@@ -194,11 +290,13 @@ f(ref v);             // TypeError: the argument bound by ref to "x" does
 Writing an already-typed value (`x = (2 := uint8)`) round-trips correctly;
 the chapter example uses that spelling and cites this entry.
 
+Affected examples: `sec-references-and-borrowing`, which writes an already-typed
+value through the ref.
 ## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
 
-Two stacked failures, found evaluating what the engine's own expansion tests
-only compile. First, expansion does not consume the replacement-decorator
-invocation: the expanded module still contains `@a ...` even when the macro
+`#sec-expansion` and `#sec-applyreplacementdecorator`. Two stacked failures,
+found evaluating what the engine's own expansion tests only compile. First,
+expansion does not consume the replacement-decorator invocation: the expanded module still contains `@a ...` even when the macro
 replaced the decorated tokens entirely. Second, evaluating that leftover
 reads the preprocessor import's binding, which was created but never
 initialized, and the engine dies on a HOST assertion (GetBindingValue:
@@ -237,6 +335,8 @@ Getter-only and setter-only classes answer correctly (the suite tests only
 those), so this is last-wins where shape-filtering is specified. The
 retrieval example uses distinct members and cites this entry.
 
+Affected examples: `sec-retrieval-overloaded-targets`, which asks about a
+method and a getter on different names.
 ## D15 - A deferred application is not usable as a binding's type (2026-08-10)
 
 `#sec-deferred-applications`: an application over an unbound parameter is
@@ -271,6 +371,8 @@ f({ x: 1, extra: 9 });                    // accepted
 Width subtyping makes this sound for a value that already has a type; the
 freshness rule is specifically about the literal, which is what is missing.
 
+Affected examples: `sec-literal-freshness`, which currently shows only the
+accepted-and-correct case. The refusal is the example this section wants.
 ## D17 - Declarative checker facts are unimplemented (2026-08-10)
 
 `#sec-declarative-checker-facts` gives a Signature Record two further fields:
@@ -291,3 +393,57 @@ route to a signature carrying either fact. A consequence is visible at
 `#sec-this-adoption`: extracting a method should be a type error at the
 boundary that took it, and instead fails inside the body when it reads a
 typed field off undefined.
+
+Affected examples: all three sections of the chapter ship what the engine can
+do instead - `sec-declarative-checker-facts` prints the two fields a signature
+actually has, `sec-this-adoption` shows the extraction failing late, and
+`sec-declared-narrowing` uses the built-in `is` test. All three want rewriting
+once a signature can carry the facts.
+
+## D18 - Parameterized primitive families are not bound in expression position (2026-08-10)
+
+`#sec-types-in-expression-position`: "A type name is already an expression,
+since a type is a value, so `uint8` and `Map.<string, uint8>` may be written
+where a value is expected." The named shorthands and the generic classes obey
+this; the parameterized primitive families do not, because their bases are not
+bindings at all:
+
+```js
+typeof uint8;      // 'object'   - shorthand, fine
+typeof Map;        // 'function' - generic class, fine
+typeof int;        // 'undefined'  \
+typeof uint;       // 'undefined'   } no binding for the family base,
+typeof vector;     // 'undefined'   } so a parameterized reference cannot
+typeof complex;    // 'undefined'  /  resolve in expression position
+int.<8> === int8;  // ReferenceError: "int" is not defined
+typeof uint.<4>;   // 'undefined'
+```
+
+Type position is unaffected (`type B = int.<8>` interns equal to `int8`, and
+`type V = vector.<float32, 4>` equals `float32x4`), and a metadata
+parameterization of a shorthand works (`typeof float64.<{ m: 1 }>` is
+'object') because its base is bound. So the gap is exactly the family bases.
+
+Affected examples (both use the alias form and should use the direct
+expression once this is fixed): `sec-canonicalizetype`, and any future
+example wanting `int.<N>`/`uint.<N>`/`vector.<T, N>` as a value.
+
+## D19 - ThreadLocal storage does not default to DefaultValueOf(T) (2026-08-10)
+
+`#sec-threadlocal-objects`: "An agent that has not written the storage reads
+DefaultValueOf(_T_)". The engine reads undefined instead, and a written value
+comes back untyped:
+
+```js
+const t = new ThreadLocal.<uint32>();
+t.value;               // undefined; spec: 0 (typed)
+new ThreadLocal.<string>().value;  // undefined; spec: ''
+t.value = 5; t.value;  // 5, untyped
+```
+
+DefaultValueOf itself is correct for ordinary bindings (`let d: uint32` reads
+`0 (typed)`), so this is the ThreadLocal storage path specifically. Compare D4,
+which is DefaultValueOf's other gap.
+
+Affected examples: `sec-threadlocal-objects`, which writes before reading.
+Restore the read-before-write line when this closes.

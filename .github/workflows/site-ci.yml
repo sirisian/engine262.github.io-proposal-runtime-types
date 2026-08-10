@@ -46,3 +46,58 @@ jobs:
           name: site
           path: dist
           include-hidden-files: true
+
+  # The specification tree's examples are runtime-types programs, so they are
+  # checked against the proposal fork rather than the upstream engine the build
+  # job uses. validate-examples runs every example and fails on a wrong
+  # completion kind or a stale section id; check-coverage fails when a clause
+  # of spec.emu has no example, which is what keeps the tree complete as the
+  # specification grows.
+  spec-tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Clone engine262 (proposal-runtime-types)
+        uses: actions/checkout@v7
+        with:
+          repository: sirisian/engine262-proposal-runtime-types
+          ref: proposal-runtime-types
+          path: engine262
+      - name: Clone test262
+        uses: actions/checkout@v7
+        with:
+          repository: tc39/test262
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: harness
+          sparse-checkout-cone-mode: true
+          path: engine262/test/test262/test262
+      - name: Build engine262
+        working-directory: engine262
+        run: npm ci && npm run build
+      - name: Link engine262
+        run: ln -s "$GITHUB_WORKSPACE/engine262" lib/engine262
+      - run: pnpm install --no-frozen-lockfile
+      - name: Regenerate the spec outline
+        # Fetches spec.emu from the proposal repository, so a clause added
+        # there shows up as an uncovered section here rather than silently
+        # going unexampled.
+        run: node scripts/generate-spec-outline.mts
+      - name: Check the outline is up to date
+        run: git diff --exit-code playground/devtools/generated/spec-outline.mts
+      - name: Validate every example against the engine
+        run: node scripts/validate-examples.mts
+      - name: Check every section has an example
+        run: node scripts/check-coverage.mts
+      - name: Upload findings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: example-findings
+          path: playground/devtools/spec-tree/examples/FINDINGS.md
+          if-no-files-found: ignore

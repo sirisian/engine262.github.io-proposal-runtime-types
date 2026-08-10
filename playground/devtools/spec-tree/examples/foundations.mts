@@ -79,14 +79,14 @@ export const foundations: ExampleChapter = [
   {
     section: "sec-canonicalizetype",
     title: "Canonical forms",
-    summary: "Aliases of one primitive and reorderings of one union canonicalize to one type.",
+    summary: "Aliases of one primitive and reorderings of one union canonicalize to one type (int.<8> is spelled through an alias because the family bases are not bound in expression position: KNOWN-DIVERGENCES.md D18).",
     code: "type A = int8;\ntype B = int.<8>;\nconsole.log(A === B);\ntype U1 = (uint8 | string) | uint16;\ntype U2 = uint16 | (string | uint8);\nconsole.log(U1 === U2);",
     expected: "true\ntrue",
   },
   {
     section: "sec-gettypeobject",
     title: "One Type Record, one Type Object",
-    summary: "Every mention of a structure in expression position yields the same interned object.",
+    summary: "Every mention of a structure in expression position yields the same interned object (shown with the object form because the tuple form is broken: KNOWN-DIVERGENCES.md D2).",
     code: "const T = type { x: uint8 };\nconsole.log(typeof T, T === type { x: uint8 });",
     expected: "'object' true",
   },
