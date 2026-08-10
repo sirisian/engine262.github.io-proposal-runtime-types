@@ -70,3 +70,34 @@ let d: uint8; d;         // 0 - the numeric case is correct
 
 The `#sec-defaultvalueof` example uses the array and boolean cases and notes
 this entry for tuples.
+
+## D5 - Unary + strips the numeric type (2026-08-10)
+
+`#sec-unary-operators-for-typed-values`: "Unary `+` returns its operand
+unchanged when the operand is a value of a numeric type of this proposal."
+The engine converts to a plain Number instead:
+
+```js
+Reflect.typeOf(+(7 := uint8)) === number;  // true; spec: uint8, unchanged
+```
+
+Unary `-` and `~` behave as specified (wrapping). The unary-operators example
+demonstrates those two and cites this entry.
+
+## D6 - Object type identity is member-order-sensitive (2026-08-10)
+
+`#sec-sameobjecttype` looks a property up in the other record by [[Key]], so
+member order does not participate in identity, and interning should make two
+orderings one Type Object. The engine compares positionally:
+
+```js
+type A = { x: uint8, y: string };
+type B = { y: string, x: uint8 };
+A === B;                          // false; spec: true
+Reflect.isAssignable(A, B) &&
+Reflect.isAssignable(B, A);       // true - assignability is order-insensitive,
+                                  // so the divergence is identity/interning only
+```
+
+The sameobjecttype example uses an optionality difference (correctly false)
+and cites this entry.
