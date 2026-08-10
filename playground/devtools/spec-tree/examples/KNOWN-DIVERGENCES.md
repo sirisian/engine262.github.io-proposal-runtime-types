@@ -158,3 +158,38 @@ an open gap (type-universe/extended-numeric-types.test.mts: "the `complex`
 type, and the imaginary literal remain refusals, documents the gap"). The
 sec-complex-types example ships the refusal, labeled, so the tree reflects
 the current state; sec-imaginary-literals shares the entry.
+
+## D11 - (spec) Variance declarations have semantics but no grammar (2026-08-10)
+
+`#sec-generic-variance` states what a variance declaration means ("A type
+parameter may be declared covariant or contravariant, as it may in C# and
+Kotlin") and defines the polarity well-formedness rules, but the
+TypeParameter production of `#sec-type-parameters` is
+`BindingIdentifier TypeParameterConstraint? TypeParameterDefault?` - there is
+no spelling that declares the variance. The engine refusing `out T` /
+`in T` is consistent with the grammar as written; the gap is on the spec
+side. The sec-generic-variance example demonstrates the invariance default,
+which is expressible.
+
+Note for D8 while it is open: the wrongful writable-depth covariance reaches
+structural generic applications too - `SBox.<uint8>` is accepted where
+`SBox.<uint8 | string>` is required for `type SBox<T> = { value: T }` -
+so nominal generics are the reliable way to demonstrate invariance.
+
+## D12 - A literal written through a typed ref parameter untypes the binding (2026-08-10)
+
+A literal in a typed position takes the position's type, and `ref x: uint8`
+is such a position. The engine stores a plain Number instead, which then
+breaks the caller's binding's own invariant:
+
+```js
+function f(ref x: uint8) { x = 2; }
+let v: uint8 = 1;
+f(ref v);
+v instanceof uint8;   // false; v now holds an untyped 2
+f(ref v);             // TypeError: the argument bound by ref to "x" does
+                      // not satisfy its type annotation
+```
+
+Writing an already-typed value (`x = (2 := uint8)`) round-trips correctly;
+the chapter example uses that spelling and cites this entry.
