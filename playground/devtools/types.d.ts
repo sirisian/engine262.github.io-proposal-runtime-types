@@ -10,3 +10,7 @@ declare module "https://cdn.jsdelivr.net/npm/lz-string@1.5.0/+esm" {
   import x = require("lz-string");
   export default x;
 }
+declare module "*.css" {
+  const styles: string;
+  export default styles;
+}

@@ -1,0 +1,126 @@
+/* Styles for the specification tree panel. Loaded as a string by the rollup
+ * css plugin and registered on both the panel element and the tree's shadow
+ * root, so selectors are written to work in either scope. Colors and fonts are
+ * devtools design tokens so the panel follows the active theme. */
+
+.spec-tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--sys-color-divider);
+  background: var(--sys-color-cdt-base-container);
+  flex: none;
+}
+
+.spec-tree-title {
+  font-weight: 500;
+  color: var(--sys-color-on-surface);
+  white-space: nowrap;
+}
+
+.spec-tree-filter {
+  flex: 1 1 auto;
+  min-width: 60px;
+  padding: 2px 6px;
+  border: 1px solid var(--sys-color-neutral-outline);
+  border-radius: 4px;
+  background: var(--sys-color-cdt-base-container);
+  color: var(--sys-color-on-surface);
+  font-size: 12px;
+}
+
+.spec-tree-filter:focus {
+  outline: none;
+  border-color: var(--sys-color-primary);
+}
+
+.spec-tree-outline-container {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.spec-section-title {
+  color: var(--sys-color-on-surface);
+}
+
+.spec-section-link {
+  margin-left: 6px;
+  color: var(--sys-color-primary);
+  text-decoration: none;
+  opacity: 60%;
+  font-size: 11px;
+}
+
+.spec-section-link:hover {
+  opacity: 100%;
+  text-decoration: underline;
+}
+
+.spec-example {
+  display: block;
+  margin: 2px 0 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--sys-color-divider);
+  border-radius: 6px;
+  background: var(--sys-color-surface1);
+  max-width: 640px;
+  white-space: normal;
+}
+
+.spec-example-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.spec-example-title {
+  flex: 1 1 auto;
+  font-weight: 500;
+  color: var(--sys-color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-example-summary {
+  margin: 2px 0 0;
+  color: var(--sys-color-on-surface-subtle);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.spec-example-code {
+  margin: 4px 0 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--sys-color-surface2);
+  color: var(--sys-color-on-surface);
+  font-family: var(--source-code-font-family);
+  font-size: var(--source-code-font-size);
+  line-height: 1.4;
+  white-space: pre;
+  overflow-x: auto;
+  user-select: text;
+  cursor: text;
+}
+
+.spec-example-expand {
+  margin-top: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--sys-color-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.spec-example-expand:hover {
+  text-decoration: underline;
+}
+
+.spec-tree-empty {
+  padding: 12px;
+  color: var(--sys-color-on-surface-subtle);
+  font-size: 12px;
+}

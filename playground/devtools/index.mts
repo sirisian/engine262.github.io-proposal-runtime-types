@@ -4,6 +4,7 @@ import { startLanguageVM } from "./main/connection.mts";
 import { modifyConsoleView, registerFilesView } from "./main/load-views.mts";
 import { fixChromeDevtoolsFrontend, fixDOM, fixWorker } from "./main/hack.mts";
 import { initFeatureSettings } from "./main/features.mts";
+import { installSpecTreeDock } from "./spec-tree/panel.mts";
 import * as Common from "chrome-devtools-frontend/front_end/core/common/common.ts";
 import * as Main from "chrome-devtools-frontend/front_end/entrypoints/main/main.ts";
 
@@ -14,6 +15,7 @@ registerFilesView();
 // registerEngine262View();
 fixChromeDevtoolsFrontend();
 fixWorker();
+installSpecTreeDock();
 
 Common.Runnable.registerEarlyInitializationRunnable(initFeatureSettings);
 Common.Runnable.registerEarlyInitializationRunnable(modifyConsoleView);

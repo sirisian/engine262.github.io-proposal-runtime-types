@@ -19,6 +19,13 @@ export const L = {
     share: "Share as URL",
     copyToShare: "Copy the following URL to share",
     selectFile: "Select File",
+    specTitle: "Specification",
+    specFilter: "Filter sections and examples",
+    specPlay: "Run in the console",
+    specCopy: "Copy code",
+    specLink: "Open in the specification",
+    specShowAll: "Show all {n} lines",
+    specCollapse: "Collapse",
   },
 };
 
