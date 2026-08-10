@@ -54,3 +54,19 @@ parenthesized part as an ordinary expression (`uint8 | string` as values
 numeric-ors to 0). Not yet checked against the `#sec-types-in-expression-position`
 grammar; determine whether this spelling is sanctioned before filing. Aliases
 (`type U = uint8 | string;` then `U`) work and are what examples use.
+
+## D4 - Tuple bindings have no default value (2026-08-10)
+
+`#sec-defaultvalueof` builds a tuple default element-wise: for
+`[uint8, uint8]` every element type has a default (0), so the binding should
+hold a new `[0, 0]` tuple before assignment. The engine leaves it undefined:
+
+```js
+let t: [uint8, uint8];
+t;                       // undefined; spec: a typed [0, 0]
+let a: [].<uint8>; a;    // [] - the dynamic-array case is correct
+let d: uint8; d;         // 0 - the numeric case is correct
+```
+
+The `#sec-defaultvalueof` example uses the array and boolean cases and notes
+this entry for tuples.
