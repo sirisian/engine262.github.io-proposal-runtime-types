@@ -6,13 +6,16 @@ import { declarations } from "./declarations.mts";
 import { operators } from "./operators.mts";
 import { functions } from "./functions.mts";
 import { classes } from "./classes.mts";
+import { reflection } from "./reflection.mts";
+import { numericLibrary } from "./numeric-library.mts";
+import { arraysAndExtensions } from "./arrays-extensions.mts";
 
 /**
  * Every example, in tree order. Chapter modules are added here as coverage
  * phases land; scripts/validate-examples.mts runs this whole list and the
  * coverage checker (final phase) diffs it against the generated outline.
  */
-export const ALL_EXAMPLES: SpecExample[] = [...foundations, ...conversions, ...enforcement, ...declarations, ...operators, ...functions, ...classes];
+export const ALL_EXAMPLES: SpecExample[] = [...foundations, ...conversions, ...enforcement, ...declarations, ...operators, ...functions, ...classes, ...reflection, ...numericLibrary, ...arraysAndExtensions];
 
 const bySection = new Map<string, SpecExample[]>();
 for (const example of ALL_EXAMPLES) {
