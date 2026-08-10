@@ -236,3 +236,58 @@ Reflect.getReflection.<Reflect.ClassGetter, A>("v").kind;  // 'ClassSetter'
 Getter-only and setter-only classes answer correctly (the suite tests only
 those), so this is last-wins where shape-filtering is specified. The
 retrieval example uses distinct members and cites this entry.
+
+## D15 - A deferred application is not usable as a binding's type (2026-08-10)
+
+`#sec-deferred-applications`: an application over an unbound parameter is
+carried as an ~application~ Type Record and evaluated at specialization. In an
+alias at top level this works (`type P8 = pairOf(uint8)` interns equal to
+`[uint8, uint8]`), but annotating a binding inside a generic body with one
+fails at the annotation:
+
+```js
+function pairOf(T) { return Reflect.makeType({ kind: "tuple",
+  elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }
+function make<T>(x: T) { let p: pairOf(T); return p; }
+make((1 := uint8));   // TypeError: Cannot convert undefined to object
+```
+
+The sec-deferred-applications example uses the closed alias form.
+
+## D16 - Object literal freshness is not enforced (2026-08-10)
+
+`#sec-literal-freshness`: "an own property the expected type neither declares
+nor admits through an index signature is a type error, reported against the
+property". The engine accepts the extra property, at a binding and at an
+argument:
+
+```js
+type Expected = { x: uint8 };
+let bad: Expected = { x: 1, extra: 2 };   // accepted; bad.extra is 2
+function f(p: Expected) { return "took it"; }
+f({ x: 1, extra: 9 });                    // accepted
+```
+
+Width subtyping makes this sound for a value that already has a type; the
+freshness rule is specifically about the literal, which is what is missing.
+
+## D17 - Declarative checker facts are unimplemented (2026-08-10)
+
+`#sec-declarative-checker-facts` gives a Signature Record two further fields:
+[[ThisType]] (`#sec-this-adoption`) and [[Narrows]]
+(`#sec-declared-narrowing`). The engine's signature records carry neither,
+through reflection or through makeType:
+
+```js
+type F = (x: uint8) => boolean;
+Object.keys(Reflect.getReflection(F).signatures[0]);  // ['parameters','return']
+```
+
+The clause is explicit that no dedicated syntax exists ("Deriving the two from
+[[Return]] is why no `asserts` operator appears here") and that a signature
+"acquires them by construction, which is how the design's `withThisType`
+writes one" - and that standard-kit function is absent too, so there is no
+route to a signature carrying either fact. A consequence is visible at
+`#sec-this-adoption`: extracting a method should be a type error at the
+boundary that took it, and instead fails inside the body when it reads a
+typed field off undefined.
