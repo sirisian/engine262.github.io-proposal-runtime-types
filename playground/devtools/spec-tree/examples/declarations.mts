@@ -64,6 +64,13 @@ export const declarations: ExampleChapter = [
   },
   {
     section: "sec-defaultvalueof",
+    title: "Every numeric family has a zero",
+    summary: "The rule reads \"if t is a numeric type, return the value of t representing 0\", and the numeric types run wider than the integer widths - a decimal's zero is its shortest cohort member, and a vector's is its lane zero in every lane.",
+    code: "let d: decimal128;\nlet v: float32x4;\nlet m: boolean8;\nlet q: rational;\nconsole.log(d.toString(), String(v.x), m.any(), q.toString());",
+    expected: "'0' '0' false '0'",
+  },
+  {
+    section: "sec-defaultvalueof",
     title: "A value type class is a shape with a zero",
     summary: "The rule reaches fields too: an instance comes into existence with every field at its type's default, tuples included.",
     code: "class C { n: uint8; t: [uint8, uint8]; }\nconst c = new C();\nconsole.log(c.n, c.t);",

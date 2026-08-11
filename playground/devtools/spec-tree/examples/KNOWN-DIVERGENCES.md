@@ -42,7 +42,7 @@ this one is not.
 | D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
-| D20 | Numeric families beyond int/float/number have no default | engine | sec-defaultvalueof |
+| D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
 | D21 | A binding whose type has no default is not refused | engine | sec-defaultvalueof |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
@@ -373,31 +373,6 @@ which is DefaultValueOf's other gap.
 Affected examples: `sec-threadlocal-objects`, which writes before reading.
 Restore the read-before-write line when this closes.
 
-## D20 - Numeric families beyond int/float/number have no default (2026-08-11)
-
-`#sec-defaultvalueof` step 2 is "If _t_ is a numeric type, return the value of
-_t_ representing 0", and the specification defines that broadly: "Each integer,
-binary floating-point, decimal floating-point, rational, complex, and vector
-type is a numeric type in that sense." The engine's `primitive` case handles
-`int`, `uint`, `float16`, `float32`, `float64`, `number`, `string`, `boolean`
-and `bigint` only, so the rest read *undefined*:
-
-```js
-let f: float128;    // undefined; spec: 0        <- beside three widths that work
-let d: decimal128;  // undefined; spec: 0
-let r: rational;    // undefined; spec: 0
-let v: float32x4;   // undefined; spec: a zero vector
-let b: boolean8;    // undefined; spec: a zero mask (a bit vector of uint.<1>)
-```
-
-Each family needs its own construction (`CreateDecimalValue` for the decimals,
-a vector construction for the lane types), which is why this was split out of
-the tuple fix rather than absorbed into it. The complex case is D10's, since
-the type objects are absent entirely.
-
-Affected examples: none - no example asserts a default for these families. Add
-one to `sec-defaultvalueof` when this closes.
-
 ## D21 - A binding whose type has no default is not refused (2026-08-11)
 
 `#sec-defaultvalueof`: "It is a type error to declare a binding or a field with
@@ -419,8 +394,16 @@ weighing in that read - a type with no default "is one for which no zero is
 meaningful, and the operation reports that rather than inventing one" - since
 the present behaviour invents *undefined*.
 
+One reason to sequence this after the defaulting gaps rather than before: the
+rule refuses a binding whose type has no default, so a type that *should* have
+one but does not would be refused for the wrong reason. D20 closed that for the
+decimal, vector and rational families. `float128` remains - it has no values at
+all (D23), so a `float128` binding will be refused by this rule for a reason
+that is really D23's, and the error message should not claim the type has no
+zero.
+
 Affected examples: `sec-defaultvalueof`'s tuple test in the engine suite pins
-today's behaviour and cites this entry.
+today's behaviour and cites this entry, as does its float128 test.
 
 ## D22 - (spec) DefaultValueOf's parameterized step can return a non-member (2026-08-11)
 
@@ -446,3 +429,31 @@ let d: Meter;   // step 12 as written yields 0, which is not a Meter
 The engine tests membership instead, which subsumes the judgment and honours
 the contract, so a brand's parameterization has no default. Suggested wording
 for the step: "If _d_ is not a value of the type _t_, return ~none~."
+
+## D23 - float128 has no value representation (2026-08-11)
+
+`#sec-binary-floating-point-types` gives `float16`, `float32`, `float64` and
+`float128` values "of the corresponding IEEE 754-2019 binary interchange
+formats", and `#table-binary-float-types` gives float128 its width and
+precision. The type object exists and can be annotated with, but no value of it
+can be made by any route:
+
+```js
+let x: float128 = 1.5;   // TypeError: "a literal type of number" is not
+                         //            assignable to "float128"
+(1.5 := float128);       // TypeError: 1.5 is not assignable to "float128"
+float128(1.5);           // the same
+let f: float128;         // undefined - it has no zero either, since there is
+                         // no value to be the zero
+```
+
+This is a completeness gap rather than a behavioural divergence, and the
+specification expects implementations to differ here: "Coverage is not
+conditioned on which types an implementation has values for: the `float128` and
+decimal rows are as normative as the rest." The decimal families do have values,
+so this is float128 alone among the binary floats, and it is the sibling of D10
+rather than of the defaulting entries.
+
+Affected examples: none. The engine suite's `sec-defaultvalueof` test pins
+`let f: float128;` as undefined and cites this entry, so the gap is recorded
+rather than read as an oversight in the defaulting rule.
