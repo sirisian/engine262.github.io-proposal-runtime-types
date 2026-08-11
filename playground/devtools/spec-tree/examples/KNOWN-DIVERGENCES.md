@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D3 | Function-type operand of the `type` operator is unwritable | engine | sec-types-in-expression-position |
 | D4 | Tuple bindings have no default value | engine | sec-defaultvalueof |
 | D5 | Unary `+` strips the numeric type | engine | sec-unary-operators-for-typed-values |
 | D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
@@ -65,42 +64,6 @@ Also worth knowing when reading the tree: the evaluation budget
 (`sec-evaluation-budget`) is host-configured through ManagedRealm and cannot
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
-
-## D3 - The function-type operand of the `type` operator is unwritable (2026-08-09, rescoped 2026-08-11)
-
-`#sec-types-in-expression-position` motivates its cover grammar with exactly
-this case: "`type (uint8) => uint8` is a type operator applied to a function
-type, while `type (x)` is a call of a function named `type`, and the two agree
-until the token after the closing parenthesis. This specification resolves it
-with a cover grammar ... the parenthesized text is parsed under a cover
-production and refined to a function-type operand or a call argument list once
-the token after the closing parenthesis is known."
-
-The engine has no cover production, so `(` is always a call and the operand is
-refused:
-
-```js
-type (uint8) => uint8;      // SyntaxError: Unexpected token
-type (x: uint8) => uint8;   // SyntaxError: Unexpected token
-type F = (x: uint8) => uint8;   // the alias form works, and is what
-                                // examples use
-```
-
-Fixing it means parsing the parenthesized text once and refining on the token
-after `)`, the device the grammar already uses for arrow parameters and for
-`async (`.
-
-**This entry previously claimed `type (uint8 | string)` should work.** It
-should not: the cover production refines to a function-type operand or a call
-argument list, and a parenthesized non-function type is neither. The clause
-also says the operand "extends as far as one reaches: `type A | B` is the union
-of `A` and `B`", so the union spelling is unparenthesized - and it already
-works, `(type uint8 | string) === U` being *true*. The parenthesized union is a
-call, correctly.
-
-Affected examples: `sec-types-in-expression-position` demonstrates the object,
-tuple and union operands and notes the function type. Add the function-type
-operand there when this closes.
 
 ## D4 - Tuple bindings have no default value (2026-08-10)
 

@@ -134,9 +134,9 @@ export const grammar: ExampleChapter = [
   {
     section: "sec-types-in-expression-position",
     title: "The operator resolves the collisions",
-    summary: "An object type would read as a block and a tuple as an array literal, so the operator parses its operand as a type. The function-type operand is not spellable yet (KNOWN-DIVERGENCES.md D3).",
-    code: "type Obj = { x: uint8 };\ntype Tup = [uint8, uint8];\ntype Uni = uint8 | string;\nconsole.log((type { x: uint8 }) === Obj, (type [uint8, uint8]) === Tup, (type uint8 | string) === Uni);",
-    expected: "true true true",
+    summary: "A function type would read as an arrow, an object type as a block, a tuple as an array literal, and a union as a bitwise or - so the operator parses its operand as a type.",
+    code: "type Fn = (uint8) => uint8;\ntype Obj = { x: uint8 };\ntype Tup = [uint8, uint8];\ntype Uni = uint8 | string;\nconsole.log((type (uint8) => uint8) === Fn, (type { x: uint8 }) === Obj, (type [uint8, uint8]) === Tup, (type uint8 | string) === Uni);",
+    expected: "true true true true",
   },
   {
     section: "sec-types-in-expression-position",
@@ -144,6 +144,13 @@ export const grammar: ExampleChapter = [
     summary: "Where the operator claims a token, the program parenthesizes the name to mean the value instead - the trade the clause makes by leaving these operands to the operator.",
     code: 'const type = ["a", "b"];\nconsole.log((type)[0], (type).length);',
     expected: "'a' 2",
+  },
+  {
+    section: "sec-types-in-expression-position",
+    title: "A call is refined out of the cover",
+    summary: "After the operator, parenthesized text could be a function type's parameters or a call's arguments; the token after the closing parenthesis decides, so a call of a function named type survives - named arguments included.",
+    code: 'function type(x) { return "call:" + String(x === uint8); }\nconsole.log(type (uint8));\nconsole.log(type (x: uint8));',
+    expected: "'call:true'\n'call:true'",
   },
   {
     section: "sec-types-in-expression-position",
