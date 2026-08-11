@@ -127,9 +127,23 @@ export const grammar: ExampleChapter = [
   {
     section: "sec-types-in-expression-position",
     title: "A type name is an expression",
-    summary: "uint8 is a value; the type operator handles the colliding forms (the tuple and parenthesized operands are currently broken: KNOWN-DIVERGENCES.md D2, D3).",
+    summary: "uint8 is a value, since a type is a value.",
     code: "let t: type = uint8;\nconsole.log(t is type, (type) is type, 5 is type);",
     expected: "true true false",
+  },
+  {
+    section: "sec-types-in-expression-position",
+    title: "The operator resolves the collisions",
+    summary: "An object type would read as a block and a tuple as an array literal, so the operator parses its operand as a type. The function-type operand is not spellable yet (KNOWN-DIVERGENCES.md D3).",
+    code: "type Obj = { x: uint8 };\ntype Tup = [uint8, uint8];\ntype Uni = uint8 | string;\nconsole.log((type { x: uint8 }) === Obj, (type [uint8, uint8]) === Tup, (type uint8 | string) === Uni);",
+    expected: "true true true",
+  },
+  {
+    section: "sec-types-in-expression-position",
+    title: "A binding named type keeps its value reading",
+    summary: "Where the operator claims a token, the program parenthesizes the name to mean the value instead - the trade the clause makes by leaving these operands to the operator.",
+    code: 'const type = ["a", "b"];\nconsole.log((type)[0], (type).length);',
+    expected: "'a' 2",
   },
   {
     section: "sec-types-in-expression-position",

@@ -198,8 +198,9 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-reflection-own-option",
     title: "Inherited by default, own on request",
+    summary: "Every class has a constructor - the table makes it a ClassMethod of that name - so it appears in both answers; what the option changes is whether the base class's method does.",
     code: 'class B { base() {} }\nclass D extends B { own() {} }\nconsole.log(Object.keys(Reflect.getReflection.<Reflect.ClassMethod, D>()).sort().join(","));\nconsole.log(Object.keys(Reflect.getReflection.<Reflect.ClassMethod, D>({ own: true })).sort().join(","));',
-    expected: "'base,own'\n'own'",
+    expected: "'base,constructor,own'\n'constructor,own'",
   },
   {
     section: "sec-retrieval-overloaded-targets",

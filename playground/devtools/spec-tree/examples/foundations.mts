@@ -86,9 +86,9 @@ export const foundations: ExampleChapter = [
   {
     section: "sec-gettypeobject",
     title: "One Type Record, one Type Object",
-    summary: "Every mention of a structure in expression position yields the same interned object (shown with the object form because the tuple form is broken: KNOWN-DIVERGENCES.md D2).",
-    code: "const T = type { x: uint8 };\nconsole.log(typeof T, T === type { x: uint8 });",
-    expected: "'object' true",
+    summary: "Every mention of a structure in expression position yields the same interned object.",
+    code: "const T = type [uint8, uint8];\nconsole.log(typeof T, T === type [uint8, uint8], T === type [uint16, uint16]);",
+    expected: "'object' true false",
   },
   {
     section: "sec-subtyping-and-assignability",
@@ -142,8 +142,8 @@ export const foundations: ExampleChapter = [
   {
     section: "sec-evaluatebuildercall",
     title: "A builder constructs a type",
-    summary: "Builders assemble Type Objects with Reflect.makeType; the result interns like any other type (see KNOWN-DIVERGENCES.md D2 for the tuple expression form).",
-    code: 'function pairOf(T) {\n  return Reflect.makeType({ kind: "tuple", elements: [{ type: T, rest: false }, { type: T, rest: false }] });\n}\ntype P = pairOf(uint8);\ntype Expected = [uint8, uint8];\nconsole.log(P === Expected);',
+    summary: "Builders assemble Type Objects with Reflect.makeType, and the result interns like any other type - so a built tuple equals the one written directly.",
+    code: 'function pairOf(T) {\n  return Reflect.makeType({ kind: "tuple", elements: [{ type: T, rest: false }, { type: T, rest: false }] });\n}\ntype P = pairOf(uint8);\nconsole.log(P === type [uint8, uint8]);',
     expected: "true",
   },
   {

@@ -27,8 +27,7 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D2 | Tuple form of the `type` operator evaluates to undefined | engine | sec-gettypeobject, sec-evaluatebuildercall |
-| D3 | Parenthesized/union operands of the `type` operator misparse | engine | sec-types-in-expression-position |
+| D3 | Function-type operand of the `type` operator is unwritable | engine | sec-types-in-expression-position |
 | D4 | Tuple bindings have no default value | engine | sec-defaultvalueof |
 | D5 | Unary `+` strips the numeric type | engine | sec-unary-operators-for-typed-values |
 | D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
@@ -67,48 +66,41 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D2 - The tuple form type [ ... ] in expression position evaluates to undefined (2026-08-09)
+## D3 - The function-type operand of the `type` operator is unwritable (2026-08-09, rescoped 2026-08-11)
 
-`#sec-types-in-expression-position` gives the `type` operator the whole Type
-production, and `#sec-gettypeobject` interns the result. The literal form
-(`type 3`) and the object form (`type { x: uint8 }`) do evaluate to their
-interned Type Objects; the tuple form evaluates to undefined, at run time and
-inside EvaluateBuilderCall alike:
+`#sec-types-in-expression-position` motivates its cover grammar with exactly
+this case: "`type (uint8) => uint8` is a type operator applied to a function
+type, while `type (x)` is a call of a function named `type`, and the two agree
+until the token after the closing parenthesis. This specification resolves it
+with a cover grammar ... the parenthesized text is parsed under a cover
+production and refined to a function-type operand or a call argument list once
+the token after the closing parenthesis is known."
 
-```js
-typeof (type 3);              // 'object'
-typeof (type { x: uint8 });   // 'object'
-typeof (type [uint8]);        // 'undefined'
-type T2 = [uint8, uint8];     // the alias form is fine, and
-                              // Reflect.makeType tuples intern equal to it
-```
-
-Beware vacuous comparisons while this is open: (type [uint8]) === (type
-[uint8]) is true because both sides are undefined - String() of the result
-printing "undefined" is the tell. Examples use aliases or Reflect.makeType
-for tuples in expression position.
-
-Affected examples: `sec-gettypeobject` (shows interning with the object form
-instead of the tuple form) and `sec-evaluatebuildercall` (compares a built
-tuple against an alias rather than a tuple expression).
-## D3 - Parenthesized and bare-union operands of the type operator misparse in expression position (2026-08-09, confirmed 2026-08-10)
-
-Confirmed against the grammar: `#sec-types-in-expression-position` defines
-`TypeOperatorExpression : type [no LineTerminator here] Type`, and the Type
-production includes parenthesized types (used freely in type position, e.g.
-`(uint8 | string) | uint16` in an alias). So `type (uint8 | string)` in
-expression position is sanctioned; the engine parses the parenthesized part
-as a value expression instead (`uint8 | string` as values numeric-ors to 0,
-then the alias reports "0 is not assignable"):
+The engine has no cover production, so `(` is always a call and the operand is
+refused:
 
 ```js
-type U = uint8 | string;
-(type (uint8 | string)) === U;   // TypeError: 0 is not assignable to "type"
-U === (uint8 | string);          // the alias form works, and is what the
-                                 // examples use
+type (uint8) => uint8;      // SyntaxError: Unexpected token
+type (x: uint8) => uint8;   // SyntaxError: Unexpected token
+type F = (x: uint8) => uint8;   // the alias form works, and is what
+                                // examples use
 ```
 
-Same family as D2's tuple operand.
+Fixing it means parsing the parenthesized text once and refining on the token
+after `)`, the device the grammar already uses for arrow parameters and for
+`async (`.
+
+**This entry previously claimed `type (uint8 | string)` should work.** It
+should not: the cover production refines to a function-type operand or a call
+argument list, and a parenthesized non-function type is neither. The clause
+also says the operand "extends as far as one reaches: `type A | B` is the union
+of `A` and `B`", so the union spelling is unparenthesized - and it already
+works, `(type uint8 | string) === U` being *true*. The parenthesized union is a
+call, correctly.
+
+Affected examples: `sec-types-in-expression-position` demonstrates the object,
+tuple and union operands and notes the function type. Add the function-type
+operand there when this closes.
 
 ## D4 - Tuple bindings have no default value (2026-08-10)
 
