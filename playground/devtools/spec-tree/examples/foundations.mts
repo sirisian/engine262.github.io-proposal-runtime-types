@@ -55,10 +55,10 @@ export const foundations: ExampleChapter = [
   },
   {
     section: "sec-sametypewithassumptions",
-    title: "Comparing composite types",
+    title: "Comparing recursive types",
     summary:
-      "Function types compare component-wise under an assumption list (which is what lets recursive types compare without looping; see KNOWN-DIVERGENCES.md D1 for the recursive case).",
-    code: "type F = (x: uint8) => uint8;\ntype G = (x: uint8) => uint8;\nconsole.log(F === G);",
+      "Two separately declared linked lists are one type. Comparing them re-enters the same pair of records, and the assumption list is what lets that answer instead of looping.",
+    code: "type L1 = { value: uint8, next: L1 | null };\ntype L2 = { value: uint8, next: L2 | null };\nconsole.log(L1 === L2);",
     expected: "true",
   },
   {

@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D1 | Recursive type alias throws ReferenceError | engine | sec-sametypewithassumptions, sec-type-alias-declarations |
 | D2 | Tuple form of the `type` operator evaluates to undefined | engine | sec-gettypeobject, sec-evaluatebuildercall |
 | D3 | Parenthesized/union operands of the `type` operator misparse | engine | sec-types-in-expression-position |
 | D4 | Tuple bindings have no default value | engine | sec-defaultvalueof |
@@ -67,21 +66,6 @@ Also worth knowing when reading the tree: the evaluation budget
 (`sec-evaluation-budget`) is host-configured through ManagedRealm and cannot
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
-
-## D1 - Recursive type alias throws ReferenceError (2026-08-09)
-
-`#sec-type-alias-declarations` sanctions self-reference "provided every cycle
-passes through a position that holds a reference rather than an inline layout:
-a member written `T | null`, ...". The engine throws instead:
-
-```js
-type L = { value: uint8, next: L | null };
-// ReferenceError: "L" cannot be used before initialization
-```
-
-Blocks the natural examples for `#sec-sametypewithassumptions` (assumption
-lists exist to terminate exactly this comparison) and part of
-`#sec-type-alias-declarations`.
 
 ## D2 - The tuple form type [ ... ] in expression position evaluates to undefined (2026-08-09)
 

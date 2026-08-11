@@ -15,9 +15,23 @@ export const declarations: ExampleChapter = [
   {
     section: "sec-type-alias-declarations",
     title: "An alias in both positions",
-    summary: "The name works where a type is expected and evaluates to the type object in expression position (see KNOWN-DIVERGENCES.md D1 for the recursive form).",
+    summary: "The name works where a type is expected and evaluates to the type object in expression position.",
     code: "type Point = { x: float32, y: float32 };\nconst p: Point = { x: 1, y: 2 };\nconsole.log(Number(p.x), typeof Point);",
     expected: "1 'object'",
+  },
+  {
+    section: "sec-type-alias-declarations",
+    title: "An alias may name itself",
+    summary: "A cycle is admitted where it passes through a position holding a reference - here the member written L | null, which is what makes a linked list expressible.",
+    code: "type L = { value: uint8, next: L | null };\nconst n: L = { value: 1, next: { value: 2, next: null } };\nconsole.log(n.next.value);",
+    expected: "2 (typed)",
+  },
+  {
+    section: "sec-type-alias-declarations",
+    title: "A cycle through other aliases",
+    summary: "The rule is about the cycle, not about one declaration: two aliases may name each other.",
+    code: "type A = { b: B | null };\ntype B = { a: A | null };\nconst v: A = { b: { a: null } };\nconsole.log(typeof A, v.b.a);",
+    expected: "'object' null",
   },
   {
     section: "sec-typed-bindings",

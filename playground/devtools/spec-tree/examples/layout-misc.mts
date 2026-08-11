@@ -73,6 +73,22 @@ export const layoutAndMisc: ExampleChapter = [
     expected: "",
   },
   {
+    section: "sec-layout-finiteness",
+    title: "The same rule reaches a type alias",
+    summary: "The member is not a reference position, so the cycle would have to be laid out inline - the error names the field that closes it.",
+    code: "type Bad = { self: Bad };",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-layout-finiteness",
+    title: "A fixed extent stays inline",
+    summary: "A dynamic array holds its elements out of line and admits the cycle; a fixed extent lays them inline and closes it.",
+    code: "type Ok = { items: [].<Ok> };\nconsole.log(typeof Ok);\ntype Fixed = { items: [2].<Fixed> };",
+    throws: true,
+    expected: "'object'",
+  },
+  {
     section: "sec-array-views",
     title: "A view over existing bytes",
     summary: "Calling the array type on a buffer aliases it - the write lands in the original bytes.",
