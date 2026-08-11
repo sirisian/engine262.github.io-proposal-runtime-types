@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D4 | Tuple bindings have no default value | engine | sec-defaultvalueof |
 | D5 | Unary `+` strips the numeric type | engine | sec-unary-operators-for-typed-values |
 | D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
 | D7 | Writes through a `readonly` member are not refused | engine | sec-object-types |
@@ -43,6 +42,9 @@ this one is not.
 | D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
+| D20 | Numeric families beyond int/float/number have no default | engine | sec-defaultvalueof |
+| D21 | A binding whose type has no default is not refused | engine | sec-defaultvalueof |
+| D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
 ## Deferred by the engine, tracked here for the same reason
 
@@ -64,22 +66,6 @@ Also worth knowing when reading the tree: the evaluation budget
 (`sec-evaluation-budget`) is host-configured through ManagedRealm and cannot
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
-
-## D4 - Tuple bindings have no default value (2026-08-10)
-
-`#sec-defaultvalueof` builds a tuple default element-wise: for
-`[uint8, uint8]` every element type has a default (0), so the binding should
-hold a new `[0, 0]` tuple before assignment. The engine leaves it undefined:
-
-```js
-let t: [uint8, uint8];
-t;                       // undefined; spec: a typed [0, 0]
-let a: [].<uint8>; a;    // [] - the dynamic-array case is correct
-let d: uint8; d;         // 0 - the numeric case is correct
-```
-
-The `#sec-defaultvalueof` example uses the array and boolean cases and notes
-this entry for tuples.
 
 ## D5 - Unary + strips the numeric type (2026-08-10)
 
@@ -386,3 +372,77 @@ which is DefaultValueOf's other gap.
 
 Affected examples: `sec-threadlocal-objects`, which writes before reading.
 Restore the read-before-write line when this closes.
+
+## D20 - Numeric families beyond int/float/number have no default (2026-08-11)
+
+`#sec-defaultvalueof` step 2 is "If _t_ is a numeric type, return the value of
+_t_ representing 0", and the specification defines that broadly: "Each integer,
+binary floating-point, decimal floating-point, rational, complex, and vector
+type is a numeric type in that sense." The engine's `primitive` case handles
+`int`, `uint`, `float16`, `float32`, `float64`, `number`, `string`, `boolean`
+and `bigint` only, so the rest read *undefined*:
+
+```js
+let f: float128;    // undefined; spec: 0        <- beside three widths that work
+let d: decimal128;  // undefined; spec: 0
+let r: rational;    // undefined; spec: 0
+let v: float32x4;   // undefined; spec: a zero vector
+let b: boolean8;    // undefined; spec: a zero mask (a bit vector of uint.<1>)
+```
+
+Each family needs its own construction (`CreateDecimalValue` for the decimals,
+a vector construction for the lane types), which is why this was split out of
+the tuple fix rather than absorbed into it. The complex case is D10's, since
+the type objects are absent entirely.
+
+Affected examples: none - no example asserts a default for these families. Add
+one to `sec-defaultvalueof` when this closes.
+
+## D21 - A binding whose type has no default is not refused (2026-08-11)
+
+`#sec-defaultvalueof`: "It is a type error to declare a binding or a field with
+a type _t_ and no initializer when DefaultValueOf(_t_) is ~none~." The engine
+declares it anyway, holding *undefined* - which is not a value of the declared
+type, so the binding's own invariant is broken from the start:
+
+```js
+let x: uint8 | string;   // declared, x is undefined; spec: a type error
+let s: symbol;           // same
+let o: { x: uint8 };     // same
+let t: [uint8, symbol];  // same - the tuple case, now that tuples default
+```
+
+This is a compatibility change as well as a fix: it turns programs the engine
+accepts today into errors, so it wants a read on how much it breaks before it
+lands, in the manner D2's `type[0]` did. The clause's own rationale is worth
+weighing in that read - a type with no default "is one for which no zero is
+meaningful, and the operation reports that rather than inventing one" - since
+the present behaviour invents *undefined*.
+
+Affected examples: `sec-defaultvalueof`'s tuple test in the engine suite pins
+today's behaviour and cites this entry.
+
+## D22 - (spec) DefaultValueOf's parameterized step can return a non-member (2026-08-11)
+
+`#sec-defaultvalueof` returns "either a value of the type _t_ or ~none~", but
+its parameterized step checks only the validation judgment: "If the metadata's
+meta type defines a validation judgment and that judgment does not hold of _d_
+and _t_.[[Metadata]], return ~none~. Return _d_."
+
+Where a governing meta type constrains and defines no `validate` - a brand -
+there is no validation judgment to fail, so the step returns the base's zero.
+That value is not of the parameterization: `#sec-primitive-metadata` says such
+a meta type "admits NO bare value of the base, which is what makes a brand a
+brand". The step therefore contradicts the operation's own return contract, and
+a binding given that default is then refused by its own annotation.
+
+```js
+type M = { m: number };
+meta M { default = { m: 0 }; subtype(a, b) { return true; } }   // no validate
+type Meter = float64.<{ m: 1 }>;
+let d: Meter;   // step 12 as written yields 0, which is not a Meter
+```
+
+The engine tests membership instead, which subsumes the judgment and honours
+the contract, so a brand's parameterization has no default. Suggested wording
+for the step: "If _d_ is not a value of the type _t_, return ~none~."

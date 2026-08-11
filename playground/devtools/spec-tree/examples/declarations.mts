@@ -51,9 +51,23 @@ export const declarations: ExampleChapter = [
   {
     section: "sec-defaultvalueof",
     title: "Structured defaults",
-    summary: "A dynamic array defaults to a new empty array of its type; boolean to false (see KNOWN-DIVERGENCES.md D4 for the tuple case).",
+    summary: "A dynamic array defaults to a new empty array of its type; boolean to false.",
     code: "let arr: [].<uint8>;\nlet b: boolean;\nconsole.log(arr, b, arr.length);",
     expected: "[] false 0 (typed)",
+  },
+  {
+    section: "sec-defaultvalueof",
+    title: "A tuple defaults element-wise",
+    summary: "Each position takes its declared initial where it has one and its type's zero otherwise, so the binding holds a whole tuple before it is assigned.",
+    code: "let t: [uint8, string];\nlet w: [uint8, uint8 = 5];\nconsole.log(t, w);",
+    expected: "[0 (typed), ''] [0 (typed), 5 (typed)]",
+  },
+  {
+    section: "sec-defaultvalueof",
+    title: "A value type class is a shape with a zero",
+    summary: "The rule reaches fields too: an instance comes into existence with every field at its type's default, tuples included.",
+    code: "class C { n: uint8; t: [uint8, uint8]; }\nconst c = new C();\nconsole.log(c.n, c.t);",
+    expected: "0 (typed) [0 (typed), 0 (typed)]",
   },
   {
     section: "sec-typed-initializers-semantics",
