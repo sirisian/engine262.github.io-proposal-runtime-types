@@ -46,6 +46,7 @@ this one is not.
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
 | D28 | Deleting a tuple position is not refused | engine | sec-array-defaults-and-stores |
 | D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
+| D30 | Shift operators use 32-bit semantics above width 32 | engine | sec-integer-operations |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
 ## Deferred by the engine, tracked here for the same reason
@@ -108,6 +109,26 @@ Number((9007199254740993 := int64) - (9007199254740992 := int64));  // 0
 Number.isSafeInteger correctly answers false for these, but the stored value
 itself has already lost the low bits. Examples avoid printing int64 values
 beyond 2^53.
+
+Three consequences the original entry missed, each found by sweeping every
+operation over a wide type:
+
+```js
+int64.parse("9223372036854775807");   // RangeError - a type cannot parse its
+uint64.parse("18446744073709551615"); // RangeError   OWN MAXIMUM, since the
+                                      //              range check rounds first
+(18014398509481983 := uint.<54>);     // 0 - the wrap is computed AFTER the
+                                      //     rounding, so 2^54 - 1 becomes 2^54
+9007199254740993n := int64;           // TypeError, and int64(x) likewise, so no
+                                      // route admits an exact wide value at all
+Math.clz((1 := uint64));              // 64, where uint.<40> correctly gives 39
+```
+
+The scope is every width above 53, not the named ones: `#sec-integer-types`
+admits _N_ up to 2^16, and `uint.<54>` and `uint.<200>` are as affected as
+`int64`. Stage 1 of the fix has landed - the carrier is now `number | bigint`
+and `Number.isSafeInteger` reads it exactly - and the engine's tests pin each
+line above so the remaining stages have their targets.
 
 Affected examples: `sec-numeric-predicates` and
 `sec-numeric-types-of-this-proposal`, which keep their printed values below
@@ -547,3 +568,25 @@ covariance.
 
 While this is open, a conforming implementation without the store rule is
 unsound and the specification does not say so.
+
+## D30 - Shift operators use 32-bit semantics above width 32 (2026-08-12)
+
+`#sec-integer-operations` gives each integer type the operations of its family
+at its own width. The shifts are performed with JavaScript's 32-bit semantics
+instead, so a shift distance is taken modulo 32 and the result is computed in
+32 bits:
+
+```js
+(1 := uint64) << (40 := uint64);        // 256   - 40 mod 32 = 8
+(1 := uint64) << (33 := uint64);        // 2     - 33 mod 32 = 1
+(1 := uint.<33>) << (32 := uint.<33>);  // 1     - and 2^32 IS exact in a double
+(1 := uint32) << (31 := uint32);        // 2147483648 - correct
+```
+
+Separate from D9 despite looking like it, and the `uint.<33>` line is the proof:
+2^32 is exactly representable in a float64, so the exactness work does not reach
+this. The defect belongs to the operator rather than to the value, and the fix
+is to shift at the type's own width with the distance taken modulo that width.
+
+Affected examples: none. The engine suite pins both this and D9's `clz` beside
+each other, since the widths at which they fail are what tell the two apart.
