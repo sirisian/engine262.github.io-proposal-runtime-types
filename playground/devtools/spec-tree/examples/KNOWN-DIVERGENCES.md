@@ -29,7 +29,7 @@ this one is not.
 | --- | --- | --- | --- |
 | D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
 | D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
-| D10 | Imaginary literals and complex types unimplemented | engine | sec-imaginary-literals, sec-complex-types, sec-complex-numbers (all ship refusals) |
+| D10 | The complex operators and Math overloads are an extension obligation | **spec** | sec-extension-hooks |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D12 | Literal written through a typed `ref` untypes the binding | engine | sec-references-and-borrowing |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
@@ -134,21 +134,54 @@ Affected examples: `sec-numeric-predicates` and
 `sec-numeric-types-of-this-proposal`, which keep their printed values below
 2^53. An exact-64-bit example belongs at `sec-integer-types` once this
 closes.
-## D10 - Imaginary literals and the complex types are unimplemented (2026-08-10)
+## D10 - The complex operators and Math overloads are an extension obligation (2026-08-10, rescoped 2026-08-12)
 
-`#sec-imaginary-literals` and `#sec-complex-types`:
+The imaginary literal, the complex types, their conversions and their layout are
+implemented. What remains is not an engine defect but an outward obligation, and
+`#sec-extension-hooks` says so of itself: it "lists the extensions the preceding
+clauses name and what each is relied on for. **It is a map of the obligations
+this specification has incurred outward, not a specification of the extensions
+themselves.**" Its complex row divides the work:
+
+> **complex numbers** - The operators and `Math` overloads of the complex types.
+> The type of an imaginary literal and the conversions are delivered by
+> `#sec-complex-numbers`.
+
+So the document delivers the type, the literal and the conversions - all now in
+the engine - and defers the arithmetic:
 
 ```js
-let z = 3i;              // SyntaxError: Unexpected token
-typeof complex64;        // 'undefined'
-typeof Math.conj;        // 'undefined'
+4i                                   // complex(0, 4)
+complex(3, -4).toString()            // '3-4i'
+let z: complex;                      // 0i - the zero D20 could not give
+(type complex64) === (type complex.<float32>)   // true
+complex64(complex(0.1, 0)).real      // 0.10000000149011612 - componentwise
+(type complex128).byteLength         // 16 - a pair of float64
+complex(1, 2) + complex(3, 4)        // still unsupported
+Math.conj, Math.arg                  // still absent
 ```
 
-The imaginary literal does not lex and the complex type objects are absent. The engine's own suite documents this as
-an open gap (type-universe/extended-numeric-types.test.mts: "the `complex`
-type, and the imaginary literal remain refusals, documents the gap"). The
-sec-complex-types example ships the refusal, labeled, so the tree reflects
-the current state; sec-imaginary-literals shares the entry.
+The constraint the deferred half must satisfy IS written down, which is what
+makes this closable rather than open-ended.
+`#sec-which-operations-each-family-defines` gives the complex family
+`unaryMinus, exponentiate, multiply, divide, add, subtract, equal, sameValue,
+sameValueZero, toString`, and denies it `lessThan` "since the complex numbers
+are not ordered", `remainder`, and the bitwise and shift operations. The
+operator table adds that a binary operator returns the operand type and that
+comparison is "equality only". `#sec-numeric-library` says `Math.abs` of a
+`complex.<T>` is "the real magnitude, a value of _T_", that "`Math.conj` and
+`Math.arg` are its additions", and that the predicates are componentwise, which
+the engine implements already.
+
+What an implementer needs and does not have is the SEMANTICS of the five
+arithmetic operations. They are the ordinary ones, so this is a small gap in
+practice; it is recorded because the document is not their source, and an
+implementer who reads the entry as an engine defect will look for them here and
+not find them.
+
+Affected examples: `sec-complex-types`, `sec-imaginary-literals` and
+`sec-complex-numbers` show the literal, the pair, and what the extension still
+owes.
 
 ## D11 - (spec) Variance declarations have semantics but no grammar (2026-08-10)
 

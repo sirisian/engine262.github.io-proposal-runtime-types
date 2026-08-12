@@ -49,11 +49,10 @@ export const typeUniverse: ExampleChapter = [
   },
   {
     section: "sec-complex-types",
-    title: "Imaginary literals (not yet in the engine)",
-    summary: "3i should be a complex value; the engine documents this as an open gap (KNOWN-DIVERGENCES.md D10) and refuses the token.",
-    code: "let z = 3i;",
-    throws: true,
-    expected: "",
+    title: "A complex value is an ordered pair",
+    summary: "The values are the ordered pairs of a real and an imaginary part. An imaginary literal supplies the imaginary one and zero as the real, and the text reads back as the literal reads.",
+    code: 'const z = 3i;\nconst w = complex(3, -4);\nconsole.log(z.real, z.imaginary, w.toString());',
+    expected: "0 3 '3-4i'"
   },
   {
     section: "sec-vector-types",

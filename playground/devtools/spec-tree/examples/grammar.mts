@@ -30,11 +30,10 @@ export const grammar: ExampleChapter = [
   },
   {
     section: "sec-imaginary-literals",
-    title: "The i suffix (not yet in the engine)",
-    summary: "2.5i should lex as an imaginary literal of the complex family; the engine refuses the token (KNOWN-DIVERGENCES.md D10).",
-    code: "let z = 2.5i;",
-    throws: true,
-    expected: "",
+    title: "The i suffix",
+    summary: "The suffix attaches to any DecimalLiteral, and the value it denotes lies on the imaginary axis - so 4i is complex(0, 4). A following identifier start is still a syntax error, so 4if does not lex.",
+    code: 'const a = 4i, b = 2.5i, c = 1e3i;\nconsole.log(a.toString(), b.toString(), c.toString());\nconsole.log(a.real, a.imaginary);',
+    expected: "'4i' '2.5i' '1000i'\n0 4",
   },
   {
     section: "sec-input-element-type",
