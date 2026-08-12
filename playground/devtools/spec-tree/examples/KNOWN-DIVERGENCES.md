@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
 | D7 | Writes through a `readonly` member are not refused | engine | sec-object-types |
 | D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
 | D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
@@ -67,26 +66,6 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D6 - Object type identity is member-order-sensitive (2026-08-10)
-
-`#sec-sameobjecttype` looks a property up in the other record by [[Key]], so
-member order does not participate in identity, and interning should make two
-orderings one Type Object. The engine compares positionally:
-
-```js
-type A = { x: uint8, y: string };
-type B = { y: string, x: uint8 };
-A === B;                          // false; spec: true
-Reflect.isAssignable(A, B) &&
-Reflect.isAssignable(B, A);       // true - assignability is order-insensitive,
-                                  // so the divergence is identity/interning only
-```
-
-The sameobjecttype example uses an optionality difference (correctly false)
-and cites this entry.
-
-Affected examples: `sec-sameobjecttype`, which distinguishes types by
-optionality instead of by member order.
 ## D7 - Writes through a readonly object-type member are not refused (2026-08-10)
 
 `#sec-isobjectsubtype` makes readonly members covariant "since a value read

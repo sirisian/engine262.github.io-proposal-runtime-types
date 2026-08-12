@@ -23,10 +23,17 @@ export const classes: ExampleChapter = [
   },
   {
     section: "sec-sameobjecttype",
+    title: "Member order is not identity",
+    summary: "Members are matched by key, so the order an object type lists them in is not part of what it is - the clause's own example, and one type.",
+    code: "type A = { x: float32, y: float32 };\ntype B = { y: float32, x: float32 };\nconsole.log(A === B);",
+    expected: "true",
+  },
+  {
+    section: "sec-sameobjecttype",
     title: "The flags are part of the identity",
-    summary: "An optional member is a different member (member order should not matter but currently does: KNOWN-DIVERGENCES.md D6).",
-    code: "type C = { x: uint8 };\ntype D = { x?: uint8 };\nconsole.log(C === D);",
-    expected: "false",
+    summary: "Only order stops mattering: an optional member is a different member, and so is one of a different type.",
+    code: "type C = { x: uint8 };\ntype D = { x?: uint8 };\ntype W = { x: uint16 };\nconsole.log(C === D, C === W);",
+    expected: "false false",
   },
   {
     section: "sec-isobjectsubtype",

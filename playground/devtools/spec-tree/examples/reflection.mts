@@ -29,6 +29,13 @@ export const reflection: ExampleChapter = [
   },
   {
     section: "sec-reflect-getreflection",
+    title: "Properties come back in key order",
+    summary: "Interning merges every spelling of a type into one object, so reporting the source's own order would report the first spelling's - an accident of load order. A reflected object type lists its properties in key order whatever the source wrote.",
+    code: 'type B = { y: string, x: uint8 };\nconsole.log(Reflect.getReflection(B).properties.map(p => p.name).join(","));',
+    expected: "'x,y'",
+  },
+  {
+    section: "sec-reflect-getreflection",
     title: "Structure as plain data",
     code: "type O = { a: uint8 };\nconst r = Reflect.getReflection(O);\nconsole.log(String(r.kind), r.properties[0].name, r.properties[0].type === uint8);",
     expected: "'object' 'a' true",
