@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D5 | Unary `+` strips the numeric type | engine | sec-unary-operators-for-typed-values |
 | D6 | Object type identity is member-order-sensitive | engine | sec-sameobjecttype |
 | D7 | Writes through a `readonly` member are not refused | engine | sec-object-types |
 | D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
@@ -68,21 +67,6 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D5 - Unary + strips the numeric type (2026-08-10)
-
-`#sec-unary-operators-for-typed-values`: "Unary `+` returns its operand
-unchanged when the operand is a value of a numeric type of this proposal."
-The engine converts to a plain Number instead:
-
-```js
-Reflect.typeOf(+(7 := uint8)) === number;  // true; spec: uint8, unchanged
-```
-
-Unary `-` and `~` behave as specified (wrapping). The unary-operators example
-demonstrates those two and cites this entry.
-
-Affected examples: `sec-unary-operators-for-typed-values`, which demonstrates
-`-` and `~` only. Add the unary `+` line when this closes.
 ## D6 - Object type identity is member-order-sensitive (2026-08-10)
 
 `#sec-sameobjecttype` looks a property up in the other record by [[Key]], so

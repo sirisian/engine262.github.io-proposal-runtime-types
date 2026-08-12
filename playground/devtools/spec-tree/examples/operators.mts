@@ -66,9 +66,16 @@ export const operators: ExampleChapter = [
   {
     section: "sec-unary-operators-for-typed-values",
     title: "Unary minus and bitwise not wrap",
-    summary: "-5 on an unsigned type is 2^8 - 5; ~0 is every bit set (unary + currently strips the type: KNOWN-DIVERGENCES.md D5).",
+    summary: "-5 on an unsigned type is 2^8 - 5; ~0 is every bit set.",
     code: "console.log(-(5 := uint8), ~(0 := uint8));",
     expected: "251 (typed) 255 (typed)",
+  },
+  {
+    section: "sec-unary-operators-for-typed-values",
+    title: "Unary plus returns its operand",
+    summary: "It computes nothing: the value comes back as itself, decimal precision included. Number() is how a program asks for the untyped Number instead.",
+    code: 'const a = (7 := uint8);\nlet d: decimal128 = 1.50;\nconsole.log(Reflect.typeOf(+a) === uint8, (+d).toString(), Number(a));',
+    expected: "true '1.50' 7",
   },
   {
     section: "sec-equality-and-comparison",
