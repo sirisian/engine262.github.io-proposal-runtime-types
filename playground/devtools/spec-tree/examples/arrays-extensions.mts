@@ -36,6 +36,14 @@ export const arraysAndExtensions: ExampleChapter = [
   },
   {
     section: "sec-array-defaults-and-stores",
+    title: "A tuple is checked per position",
+    summary: "A tuple has a type for each position rather than one element type, so a store answers that position's type - and the arity is part of the type, so there is no position to grow into.",
+    code: 'type T = [uint8, string];\nlet t: T = [1, "s"];\nt[0] = (9 := uint8);\nconsole.log(t[0], t[1]);\nt[0] = "wrong";',
+    throws: true,
+    expected: "9 (typed) 's'",
+  },
+  {
+    section: "sec-array-defaults-and-stores",
     title: "Stores are checked",
     summary: "An any value stored to a typed element runs the boundary check at the store.",
     code: "let b: [].<uint8> = [1];\nlet boxed: any = 300;\nb[0] = boxed;",

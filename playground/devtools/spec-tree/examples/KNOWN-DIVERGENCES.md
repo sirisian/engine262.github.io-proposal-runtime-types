@@ -42,6 +42,10 @@ this one is not.
 | D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
 | D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
 | D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
+| D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
+| D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
+| D28 | Deleting a tuple position is not refused | engine | sec-array-defaults-and-stores |
+| D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
 ## Deferred by the engine, tracked here for the same reason
@@ -430,3 +434,116 @@ is filed rather than folded into the refusal work.
 
 Affected examples: none. The engine suite's typed-bindings tests pin both halves
 of the asymmetry and cite this entry.
+
+## D26 - IsSubtype has no nominal arm (2026-08-12)
+
+`#sec-issubtype` states that "a ~nominal~ type is a subtype along its declared
+inheritance", and `#sec-object-types` gives an interface a structural form
+precisely so that "a value satisfy an interface by having its members". Neither
+holds: only an IDENTICAL nominal answers *true*, plus the arms implemented
+separately (`any`, `never`, and an enum to its underlying type).
+
+```js
+class Base { a: uint8; }  class Derived extends Base { b: uint8; }
+Reflect.isAssignable(type Derived, type Base);        // false; spec: true
+new Derived() instanceof (type Base);                 // true - membership is fine
+let b: Base = new Derived();                          // accepted - the boundary
+                                                      // uses membership
+
+interface I { a: string }
+Reflect.isAssignable(type { a: string }, type I);     // false; spec: true
+class Impl implements I { a: string; }
+Reflect.isAssignable(type Impl, type I);              // false; spec: true
+```
+
+Everything derived from the missing arm inherits it. Each of these answers *no*
+where the clause answers yes:
+
+```js
+type FB = (x: Base) => void;  type FD = (x: Derived) => void;
+Reflect.isAssignable(FB, FD);                             // contravariance
+Reflect.isAssignable(type { readonly v: Derived },
+                     type { readonly v: Base });          // readonly depth
+```
+
+Not unsound - it is a false *no*, so it refuses questions rather than admitting
+values, and the boundaries use membership and are unaffected. But
+`Reflect.isAssignable` is user-facing reflection, and a program asking whether a
+subclass may stand in for its base gets the wrong answer.
+
+Affected examples: none - the tree has no example of nominal subtyping. Add one
+to `sec-issubtype` when this closes.
+
+## D27 - A boundary converts a numeric to a String implicitly (2026-08-12)
+
+`#sec-the-conversion-rule`: a primitive type is assignable only to itself and
+`any`, and `string(x)` is the explicit spelling for the conversion. At a
+run-time boundary the conversion happens anyway:
+
+```js
+let boxed: any = (1 := uint8);
+let s: string = boxed;              // '1' - a String; spec: a type error
+let a: [].<string> = ["x"];
+let loose: any = a;
+loose[0] = (1 := uint8);            // a[0] is '1'
+type T = [uint8, string];
+let t: T = [1, "s"];
+t[1] = (1 := uint8);                // t[1] is '1'
+```
+
+The checker refuses the same assignment where the type is known -
+`let s: string = (1 := uint8);` is an early error - so this is the run-time half
+of the rule disagreeing with the static half. `RequireType` reaches
+`CheckedConvertValue`, whose primitive branch applies the explicit conversion,
+and every boundary that calls it inherits the behaviour: a binding, an array
+element store, a tuple position store, and a field.
+
+Affected examples: none. The engine suite pins the tuple and array forms and
+cites this entry.
+
+## D28 - Deleting a tuple position is not refused (2026-08-12)
+
+`#sec-array-defaults-and-stores`: "Deleting an element of a typed array throws a
+*TypeError* exception." A tuple is an array whose positions are typed, and a
+delete succeeds:
+
+```js
+type T = [uint8, string];
+let t: T = [1, "s"];
+delete t[0];        // true; the tuple now has a hole where a uint8 was declared
+```
+
+The store rule for a tuple position now exists; the delete rule does not, and it
+is the same sentence's other half.
+
+Affected examples: none. The engine suite pins it and cites this entry.
+
+## D29 - (spec) Tuple covariance is stated without a store rule (2026-08-12)
+
+`#sec-issubtype` records "a ~tuple~ is covariant position-wise" one line from
+"an ~array~ is invariant in its element", for the same underlying mutable Array.
+The array's invariance is justified in the same paragraph the object's is:
+covariance through a mutable position is unsound. A tuple is exactly as mutable,
+and `#sec-array-defaults-and-stores` states a store rule only for "an array of
+element type _t_" - a rule about an ~array~ record's single [[Element]], not
+about a ~tuple~ record's per-position [[Elements]].
+
+So the specification permits the exploit the engine had:
+
+```js
+type TupN = [uint8];  type TupW = [uint8 | string];
+let narrow: TupN = [1];
+let wide: TupW = narrow;   // permitted by the covariance
+wide[0] = "a string";      // nothing in the specification refuses this
+narrow[0];                 // a String in a slot declared uint8
+```
+
+Two ways to close it. **Preferred: state the store rule for a tuple**, which
+makes the covariance backstopped exactly as `[].<any>` is - the engine now does
+this. The alternative is to make a tuple invariant position-wise like an array,
+which is simpler but loses what the membership clause clearly wants, since a
+shorter tuple satisfying a longer one's read positions is the point of the
+covariance.
+
+While this is open, a conforming implementation without the store rule is
+unsound and the specification does not say so.
