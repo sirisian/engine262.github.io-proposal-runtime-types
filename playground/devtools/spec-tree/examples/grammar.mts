@@ -87,9 +87,17 @@ export const grammar: ExampleChapter = [
   {
     section: "sec-object-types",
     title: "readonly is covariant in depth",
-    summary: "The flag reflects, and a readonly member accepts a subtype where a writable one would not (writes through it should be refused: KNOWN-DIVERGENCES.md D7).",
+    summary: "The flag reflects, and a readonly member accepts a subtype where a writable one would not - which is sound because a value read from it is never written through it.",
     code: "type Src = { readonly x: uint8 };\ntype RO = { readonly x: uint8 | string };\nconsole.log(Reflect.getReflection(Src).properties[0].readonly, Reflect.isAssignable(Src, RO));",
     expected: "true true",
+  },
+  {
+    section: "sec-object-types",
+    title: "And the write it is never written through",
+    summary: "That covariance rests on the write being refused, so it is - and by the checking pass, so the program never runs at all. The guarantee belongs to the view rather than the object: the same object seen through a writable type may still be assigned.",
+    code: 'type R = { readonly x: uint8 };\nlet v: R = { x: 1 };\nconsole.log("never runs");\nv.x = (2 := uint8);',
+    throws: true,
+    expected: "",
   },
   {
     section: "sec-function-types",

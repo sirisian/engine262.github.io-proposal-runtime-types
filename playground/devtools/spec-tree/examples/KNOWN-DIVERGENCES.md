@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D7 | Writes through a `readonly` member are not refused | engine | sec-object-types |
 | D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
 | D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
 | D10 | Imaginary literals and complex types unimplemented | engine | sec-imaginary-literals, sec-complex-types, sec-complex-numbers (all ship refusals) |
@@ -66,23 +65,6 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D7 - Writes through a readonly object-type member are not refused (2026-08-10)
-
-`#sec-isobjectsubtype` makes readonly members covariant "since a value read
-from it and never written through it need only be of the required type" - the
-premise is that writes are refused. Class readonly fields enforce this
-(classes/readonly-fields.test.mts); structural object-type readonly does not:
-
-```js
-type R = { readonly x: uint8 };
-let v: R = { x: 1 };
-v.x = 2;      // succeeds; should be a checker error
-v.x;          // 2
-```
-
-Affected examples: `sec-object-types`, which shows the reflected flag and
-readonly's covariance but does not attempt a write. Add the refused write
-when this closes.
 ## D8 - Writable members are wrongly covariant in depth (2026-08-10)
 
 `#sec-isobjectsubtype` requires SameTypeWithAssumptions for a writable member
@@ -97,7 +79,12 @@ Reflect.isAssignable(MutSrc, MutTarget);  // true; spec: false
 
 This is exactly the unsoundness the spec's own note names: through the
 supertype view a string could be written into a slot the program believes
-holds a uint8. Readonly depth covariance (D7's flag) works correctly.
+holds a uint8.
+
+The readonly half of the depth rule is now enforced: a write through a
+`readonly` member is refused, so its covariance is sound for the reason the
+clause gives. This entry is the other half - a WRITABLE member is not invariant
+- and closing the first did not close it.
 
 Affected examples: `sec-generic-variance` demonstrates invariance with a
 nominal generic, since the structural form is wrongly accepted here. The
