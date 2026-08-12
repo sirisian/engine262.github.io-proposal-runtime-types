@@ -43,7 +43,8 @@ this one is not.
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
 | D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
-| D21 | A binding whose type has no default is not refused | engine | sec-defaultvalueof |
+| D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
+| D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
 ## Deferred by the engine, tracked here for the same reason
@@ -373,38 +374,6 @@ which is DefaultValueOf's other gap.
 Affected examples: `sec-threadlocal-objects`, which writes before reading.
 Restore the read-before-write line when this closes.
 
-## D21 - A binding whose type has no default is not refused (2026-08-11)
-
-`#sec-defaultvalueof`: "It is a type error to declare a binding or a field with
-a type _t_ and no initializer when DefaultValueOf(_t_) is ~none~." The engine
-declares it anyway, holding *undefined* - which is not a value of the declared
-type, so the binding's own invariant is broken from the start:
-
-```js
-let x: uint8 | string;   // declared, x is undefined; spec: a type error
-let s: symbol;           // same
-let o: { x: uint8 };     // same
-let t: [uint8, symbol];  // same - the tuple case, now that tuples default
-```
-
-This is a compatibility change as well as a fix: it turns programs the engine
-accepts today into errors, so it wants a read on how much it breaks before it
-lands, in the manner D2's `type[0]` did. The clause's own rationale is worth
-weighing in that read - a type with no default "is one for which no zero is
-meaningful, and the operation reports that rather than inventing one" - since
-the present behaviour invents *undefined*.
-
-One reason to sequence this after the defaulting gaps rather than before: the
-rule refuses a binding whose type has no default, so a type that *should* have
-one but does not would be refused for the wrong reason. D20 closed that for the
-decimal, vector and rational families. `float128` remains - it has no values at
-all (D23), so a `float128` binding will be refused by this rule for a reason
-that is really D23's, and the error message should not claim the type has no
-zero.
-
-Affected examples: `sec-defaultvalueof`'s tuple test in the engine suite pins
-today's behaviour and cites this entry, as does its float128 test.
-
 ## D22 - (spec) DefaultValueOf's parameterized step can return a non-member (2026-08-11)
 
 `#sec-defaultvalueof` returns "either a value of the type _t_ or ~none~", but
@@ -457,3 +426,57 @@ rather than of the defaulting entries.
 Affected examples: none. The engine suite's `sec-defaultvalueof` test pins
 `let f: float128;` as undefined and cites this entry, so the gap is recorded
 rather than read as an oversight in the defaulting rule.
+
+## D24 - A specialized generic's field type is not substituted (2026-08-11)
+
+`#sec-generic-specialization` makes each application a distinct type, and a
+field declared at a parameter should hold the argument's type once the
+parameter is bound. The engine substitutes a METHOD's parameter types and
+leaves the FIELD's alone, so the field is both undefaulted and unchecked:
+
+```js
+class Box<T> { value: T; set(v: T) { this.value = v; } }
+const b = new Box.<uint8>();
+b.value = "a string";   // ACCEPTED - the field's type is still the unbound
+                        // parameter, so nothing checks it
+b.value = 5;
+b.value is uint8;       // false - not even converted
+new Box.<uint8>().value;   // undefined, where a uint8 field reads 0
+b.set("a string");      // correctly refused: method parameters DO substitute
+```
+
+Two consequences beyond the unsoundness. `DefaultValueOf`'s ~parameter~ case
+answers ~none~ deliberately - its comment records that answering otherwise made
+a field of a parameter type report "undefined is not assignable to parameter"
+for a declaration a concrete type accepts - and that workaround is only
+necessary because the parameter is still there at specialization. And the
+no-default refusal (formerly D21) exempts ~parameter~ for the same reason: there
+is no point at which the bound type could be checked. **The exemption lifts when
+this closes**, and the exemption's comment says so at
+`src/type-system/runtime.mts` and the two declaration sites.
+
+Affected examples: none - the tree has no example of a generic class field.
+Add one to `sec-generic-specialization` when this closes.
+
+## D25 - A `var` binding does not take its type's default (2026-08-11)
+
+`#sec-defaultvalueof` answers "the value a binding or a field of the type _t_
+holds before it is assigned", and `#sec-declarations` draws no distinction among
+the declaration forms. A `var` gets neither the default nor, consequently, the
+refusal that follows it:
+
+```js
+var v: uint8;            // undefined
+let l: uint8;            // 0 (typed)
+var u: uint8 | string;   // declared, and holds undefined
+let w: uint8 | string;   // a type error - the type has no default
+```
+
+`Evaluate_VariableDeclaration` returns early when there is no initializer, so
+the annotation is never consulted. Fixing it is the same two lookups the `let`
+path performs, but it is a behaviour change of its own - every annotated `var`
+without an initializer starts holding a value where it held *undefined* - so it
+is filed rather than folded into the refusal work.
+
+Affected examples: none. The engine suite's typed-bindings tests pin both halves
+of the asymmetry and cite this entry.

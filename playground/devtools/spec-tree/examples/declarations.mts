@@ -64,6 +64,14 @@ export const declarations: ExampleChapter = [
   },
   {
     section: "sec-defaultvalueof",
+    title: "A type with no zero must be initialized",
+    summary: "The clause has a second half: where a type has no default, declaring a binding of it without an initializer is a type error, so the operation reports the absence rather than the binding holding a value of no type.",
+    code: 'let ok: uint8 | null;\nconsole.log(ok);\nlet refused: uint8 | string;',
+    throws: true,
+    expected: "null",
+  },
+  {
+    section: "sec-defaultvalueof",
     title: "Every numeric family has a zero",
     summary: "The rule reads \"if t is a numeric type, return the value of t representing 0\", and the numeric types run wider than the integer widths - a decimal's zero is its shortest cohort member, and a vector's is its lane zero in every lane.",
     code: "let d: decimal128;\nlet v: float32x4;\nlet m: boolean8;\nlet q: rational;\nconsole.log(d.toString(), String(v.x), m.any(), q.toString());",
