@@ -32,7 +32,6 @@ this one is not.
 | D10 | The complex operators and Math overloads are an extension obligation | **spec** | sec-extension-hooks |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
-| D15 | Deferred application unusable as a binding's type | engine | sec-deferred-applications |
 | D16 | Object literal freshness is not enforced | engine | sec-literal-freshness |
 | D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
@@ -231,23 +230,6 @@ on the working substrate instead and cite this entry; loading a
 preprocessor module without applying its macros works and is what
 sec-preprocessor-modules ships.
 
-## D15 - A deferred application is not usable as a binding's type (2026-08-10)
-
-`#sec-deferred-applications`: an application over an unbound parameter is
-carried as an ~application~ Type Record and evaluated at specialization. In an
-alias at top level this works (`type P8 = pairOf(uint8)` interns equal to
-`[uint8, uint8]`), but annotating a binding inside a generic body with one
-fails at the annotation:
-
-```js
-function pairOf(T) { return Reflect.makeType({ kind: "tuple",
-  elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }
-function make<T>(x: T) { let p: pairOf(T); return p; }
-make((1 := uint8));   // TypeError: Cannot convert undefined to object
-```
-
-The sec-deferred-applications example uses the closed alias form.
-
 ## D16 - Object literal freshness is not enforced (2026-08-10)
 
 `#sec-literal-freshness`: "an own property the expected type neither declares
@@ -422,6 +404,25 @@ no-default refusal (formerly D21) exempts ~parameter~ for the same reason: there
 is no point at which the bound type could be checked. **The exemption lifts when
 this closes**, and the exemption's comment says so at
 `src/type-system/runtime.mts` and the two declaration sites.
+
+A deferred application in a field is the shape a program is most likely to meet
+this through, and the error names the parameter rather than the gap:
+
+```js
+function pairOf(T) { return Reflect.makeType({ kind: "tuple",
+  elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }
+class Box<T> { p: pairOf(T); }
+new Box.<uint8>();
+// TypeError: "[T, T]" has no default value, so a declaration of it needs
+//            an initializer
+```
+
+`#sec-deferred-applications` works everywhere the parameter IS bound - a
+binding, a parameter, a return, and nested inside itself, all inside a generic
+body - so a field is the one position that fails, and it fails for this entry's
+reason. The rule reporting it is the one that refuses a declaration whose type
+has no default; that rule is doing its job on a type this gap left
+unsubstituted.
 
 Affected examples: none - the tree has no example of a generic class field.
 Add one to `sec-generic-specialization` when this closes.

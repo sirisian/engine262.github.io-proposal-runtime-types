@@ -5,16 +5,18 @@ to completion but printed something other than what its author expected. That
 is potential feedback for the engine or the specification - do not silently
 edit the example to match without deciding which of the three is wrong.
 
-## sec-complex-numbers - complex (not yet in the engine)
+## sec-deferred-applications - A call carried as a type
 
 Expected console output:
 
 ```
-'undefined' 'undefined'
+true
+0 (typed) '""'
 ```
 
 Actual:
 
 ```
-'object' 'undefined'
+true
+0 (typed) '\"\"'
 ```

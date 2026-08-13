@@ -11,9 +11,9 @@ export const layoutAndMisc: ExampleChapter = [
   {
     section: "sec-deferred-applications",
     title: "A call carried as a type",
-    summary: "pairOf(T) cannot evaluate while T is unbound, so it is carried and evaluated at the specialization (the deferred result is not usable as a binding's type yet: KNOWN-DIVERGENCES.md D15).",
-    code: 'function pairOf(T) { return Reflect.makeType({ kind: "tuple", elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }\ntype P8 = pairOf(uint8);\ntype Expected = [uint8, uint8];\nconsole.log(P8 === Expected);',
-    expected: "true",
+    summary: "pairOf(T) cannot evaluate while T is unbound, so it is carried and evaluated at the specialization - which is what lets it annotate a binding inside a generic body and mean a different type at each call.",
+    code: 'function pairOf(T) { return Reflect.makeType({ kind: "tuple", elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }\nconsole.log(pairOf(uint8) === (type [uint8, uint8]));\nfunction make<T>(x: T) { let p: pairOf(T); return p; }\nconsole.log(make((1 := uint8))[0], make("a")[0].length);',
+    expected: "true\n0 (typed) 0",
   },
   {
     section: "sec-declarative-checker-facts",
