@@ -246,23 +246,40 @@ A signature acquires them by construction."
 
 Three things remain.
 
-**1. A class method's signature carries no [[ThisType]].**
+**1. A method's expected `this` - CLOSED.** A method now carries one, and the
+extraction is refused at the boundary that took it rather than failing inside
+the body.
 
-```js
-class C { x: uint8 = (5 := uint8); read(): uint8 { return this.x; } }
-Object.keys(Reflect.getReflection.<Reflect.ClassMethod, C>("read").signatures[0]);
-// parameters, return - no `this`
-const loose = c.read;
-loose();   // TypeError: Cannot convert undefined to object - from INSIDE
-```
+Which type it expects was the design question, and it was settled by
+elimination. Giving a class's method the CLASS was tried and refuses
+`class C implements I`: the class's method would expect a `C` where the
+interface's expects an `I`, and `C` is the narrower, which contravariance
+rejects. The premise is wrong - a method is reached only through an object that
+HAS it, so the receiver is a `C` at every call whether the reference is typed
+`C` or `I`. A method's `this` is the RECEIVER rather than a fixed type, so every
+method carries the same self marker: two methods agree on it, a method and a
+free function do not.
 
-The variance rule is in place, so the refusal follows as soon as a method's own
-signature says what `this` it expects. `classInstanceType` already exists in the
-checker and is what would supply it.
+Worth recording that the wrong direction passed 2700 of 2701 tests. No test
+covered `class C implements I` with a method, so the suite could not eliminate
+it; the criteria did.
 
-**2. No contextual adoption.** "Where a non-arrow function literal's contextual
-type is a ~function~ type whose applicable signature has a [[ThisType]], the
-literal adopts it ... An arrow adopts nothing."
+**2. No contextual adoption**, and it needs a mechanism the checker does not
+have. "Where a non-arrow function literal's contextual type is a ~function~
+type whose applicable signature has a [[ThisType]], the literal adopts it:
+`this` within the body has that type."
+
+Adoption is a statement about the TYPE OF `this` inside a body, and this checker
+never gives `this` a static type - not even inside a class method, where the
+code says so deliberately: "`this.x` and `super.x` are inside by construction,
+and asking for the receiver's type there would recurse into the class being
+defined." Measured rather than assumed: inside a literal at a contextual type
+carrying a `this`, `let s: string = this.x` is accepted where `x` is a `uint8`,
+so `this` is untyped there.
+
+So this is not a hook to fill but a frame-level `this` type to introduce, with
+the recursion hazard the existing comment names. That is a design decision
+rather than an implementation gap.
 
 Attempting 1 established two things worth recording, since they bound what a
 fix can achieve:
