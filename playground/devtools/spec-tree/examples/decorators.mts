@@ -205,9 +205,9 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-retrieval-overloaded-targets",
     title: "The shape decides among same-named members",
-    summary: "A method and a getter answer to their own shapes (a getter/setter pair on one name currently resolves to the setter for both: KNOWN-DIVERGENCES.md D14).",
-    code: 'class A { m() {} get v(): uint8 { return 1; } }\nconsole.log(Reflect.getReflection.<Reflect.ClassMethod, A>("m").kind, Reflect.getReflection.<Reflect.ClassGetter, A>("v").kind);',
-    expected: "'ClassMethod' 'ClassGetter'",
+    summary: "The context names the part of the class to reflect, so a getter and a setter sharing ONE name are two parts and each answers to its own shape.",
+    code: 'class A { get v(): uint8 { return 1; } set v(x: uint8) {} }\nconsole.log(Reflect.getReflection.<Reflect.ClassGetter, A>("v").kind, Reflect.getReflection.<Reflect.ClassSetter, A>("v").kind);\nconsole.log(Object.keys(Reflect.getReflection.<Reflect.ClassGetter, A>()).join(","));',
+    expected: "'ClassGetter' 'ClassSetter'\n'v'",
   },
   {
     section: "sec-reflect-getmetadata",

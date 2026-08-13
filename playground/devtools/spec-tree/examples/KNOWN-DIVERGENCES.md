@@ -32,7 +32,6 @@ this one is not.
 | D10 | The complex operators and Math overloads are an extension obligation | **spec** | sec-extension-hooks |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
-| D14 | Getter shape retrieval returns the setter | engine | sec-retrieval-overloaded-targets |
 | D15 | Deferred application unusable as a binding's type | engine | sec-deferred-applications |
 | D16 | Object literal freshness is not enforced | engine | sec-literal-freshness |
 | D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
@@ -232,23 +231,6 @@ on the working substrate instead and cite this entry; loading a
 preprocessor module without applying its macros works and is what
 sec-preprocessor-modules ships.
 
-## D14 - Getter shape retrieval returns the setter for a shared name (2026-08-10)
-
-`#sec-retrieval-overloaded-targets`: the shape parameter decides which of
-several same-named members a retrieval answers. With a getter and a setter
-sharing one name, asking for the getter answers the setter:
-
-```js
-class A { get v(): uint8 { return 1; } set v(x: uint8) {} }
-Reflect.getReflection.<Reflect.ClassGetter, A>("v").kind;  // 'ClassSetter'
-```
-
-Getter-only and setter-only classes answer correctly (the suite tests only
-those), so this is last-wins where shape-filtering is specified. The
-retrieval example uses distinct members and cites this entry.
-
-Affected examples: `sec-retrieval-overloaded-targets`, which asks about a
-method and a getter on different names.
 ## D15 - A deferred application is not usable as a binding's type (2026-08-10)
 
 `#sec-deferred-applications`: an application over an unbound parameter is
