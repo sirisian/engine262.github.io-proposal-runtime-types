@@ -33,6 +33,7 @@ this one is not.
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
+| D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
@@ -262,6 +263,23 @@ checker and is what would supply it.
 **2. No contextual adoption.** "Where a non-arrow function literal's contextual
 type is a ~function~ type whose applicable signature has a [[ThisType]], the
 literal adopts it ... An arrow adopts nothing."
+
+Attempting 1 established two things worth recording, since they bound what a
+fix can achieve:
+
+- **A class method cannot carry a [[ThisType]] alone.** Giving one refuses the
+  extraction correctly, and breaks `class C implements I`: the class's method
+  then has a `this` and the interface's does not, which the variance rule
+  refuses by construction. An interface method and an object-type method need
+  one too, and what `this` each expects is a design question rather than a
+  filled field. The full suite did NOT catch this - 2700 of 2701 passed - and it
+  was found by testing the case directly.
+- **The variance rule is currently observable only through
+  `Reflect.isAssignable`.** No source boundary consults a function type against
+  a function LITERAL: `function h(f: (x: uint8) => uint8) {}` accepts
+  `h((x) => "wrong")`, inline or through an alias, while a BOUND function of the
+  wrong type is refused. So a `this` mismatch cannot be produced from source
+  until either a class method carries one or the literal case is checked.
 
 **3. [[Narrows]] is absent in full.** A `narrows` field on a constructed
 signature is dropped:
@@ -627,3 +645,36 @@ divergence is recorded at the site that will close it.
 
 Affected examples: none. The `sec-literal-freshness` example uses a binding and
 an inline parameter type.
+
+## D32 - A function literal argument is not checked against the parameter's type (2026-08-13)
+
+`#table-check-sites` makes an argument a check site, and a bound function of the
+wrong type is refused there. A function LITERAL written at the same position is
+not checked at all:
+
+```js
+type FN = (x: uint8) => uint8;
+function h(f: FN) { return "took it"; }
+
+h((x) => "wrong");                              // accepted
+function inline(f: (x: uint8) => uint8) {}
+inline((x) => "wrong");                         // accepted - the same either way
+
+const bound: (x: string) => string = (x) => x;
+h(bound);                                       // TypeError: "(x: string) =>
+                                                // string" is not assignable to
+                                                // "(x: uint.<8>) => uint.<8>"
+```
+
+So the gap is the LITERAL rather than the position or the spelling - the mirror
+of `#sec-literal-freshness`, where an object literal at a typed position gets a
+rule of its own. Unlike the object case there is no freshness question here: a
+function literal at a function-typed position should simply be checked against
+it.
+
+Found while implementing `#sec-this-adoption`, whose variance rule this hides:
+with no source boundary consulting a function type against a literal, a `this`
+mismatch cannot be produced from source at all, and the rule is observable only
+through `Reflect.isAssignable`.
+
+Affected examples: none.
