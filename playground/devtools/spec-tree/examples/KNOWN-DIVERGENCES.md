@@ -33,7 +33,7 @@ this one is not.
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
-| D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
+| D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
 | D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
@@ -230,32 +230,60 @@ on the working substrate instead and cite this entry; loading a
 preprocessor module without applying its macros works and is what
 sec-preprocessor-modules ships.
 
-## D17 - Declarative checker facts are unimplemented (2026-08-10)
+## D17 - Declared narrowing, `this` adoption, and a method's expected `this` (2026-08-10, rescoped 2026-08-13)
 
-`#sec-declarative-checker-facts` gives a Signature Record two further fields:
-[[ThisType]] (`#sec-this-adoption`) and [[Narrows]]
-(`#sec-declared-narrowing`). The engine's signature records carry neither,
-through reflection or through makeType:
+`#sec-declarative-checker-facts` gives a Signature Record two fields:
+[[ThisType]] (`#sec-this-adoption`) and [[Narrows]] (`#sec-declared-narrowing`).
+
+**[[ThisType]] exists and now means something.** It is constructible through
+`Reflect.makeType`, reflected, part of a function type's identity, and
+contravariant as the clause requires - so a method put where a free function is
+expected is refused at the boundary that took it. The original entry reported
+the field as absent on the evidence of a SOURCE-written function type, which has
+no spelling for it: "Neither [[ThisType]] nor [[Narrows]] has a source spelling.
+A signature acquires them by construction."
+
+Three things remain.
+
+**1. A class method's signature carries no [[ThisType]].**
 
 ```js
-type F = (x: uint8) => boolean;
-Object.keys(Reflect.getReflection(F).signatures[0]);  // ['parameters','return']
+class C { x: uint8 = (5 := uint8); read(): uint8 { return this.x; } }
+Object.keys(Reflect.getReflection.<Reflect.ClassMethod, C>("read").signatures[0]);
+// parameters, return - no `this`
+const loose = c.read;
+loose();   // TypeError: Cannot convert undefined to object - from INSIDE
 ```
 
-The clause is explicit that no dedicated syntax exists ("Deriving the two from
-[[Return]] is why no `asserts` operator appears here") and that a signature
-"acquires them by construction, which is how the design's `withThisType`
-writes one" - and that standard-kit function is absent too, so there is no
-route to a signature carrying either fact. A consequence is visible at
-`#sec-this-adoption`: extracting a method should be a type error at the
-boundary that took it, and instead fails inside the body when it reads a
-typed field off undefined.
+The variance rule is in place, so the refusal follows as soon as a method's own
+signature says what `this` it expects. `classInstanceType` already exists in the
+checker and is what would supply it.
 
-Affected examples: all three sections of the chapter ship what the engine can
-do instead - `sec-declarative-checker-facts` prints the two fields a signature
-actually has, `sec-this-adoption` shows the extraction failing late, and
-`sec-declared-narrowing` uses the built-in `is` test. All three want rewriting
-once a signature can carry the facts.
+**2. No contextual adoption.** "Where a non-arrow function literal's contextual
+type is a ~function~ type whose applicable signature has a [[ThisType]], the
+literal adopts it ... An arrow adopts nothing."
+
+**3. [[Narrows]] is absent in full.** A `narrows` field on a constructed
+signature is dropped:
+
+```js
+Reflect.makeType({ kind: "function", signatures: [{ parameters: [{ name: "v", type: any }],
+  return: { type: boolean }, narrows: [{ target: "v", type: uint8 }] }] });
+// reflected signature: parameters, return
+```
+
+Both consumption forms follow from [[Return]]: a `boolean` return narrows where
+the call is true, "exactly as `v is T` applies"; a ~void~ return narrows in
+every position the call dominates; any other return with a non-empty [[Narrows]]
+is a type error. The checker's narrowing machinery already exists for `is`.
+
+`withThisType` is absent too, but it belongs to the standard kit - some seventy
+type-level functions - and the clause calls it three lines given a constructible
+field, which there now is.
+
+Affected examples: `sec-this-adoption` shows the extraction failing late and
+`sec-declared-narrowing` uses the built-in `is` test. Both want rewriting as the
+remaining pieces land.
 
 ## D18 - Parameterized primitive families are not bound in expression position (2026-08-10)
 
