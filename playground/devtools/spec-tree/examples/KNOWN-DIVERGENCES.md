@@ -299,17 +299,41 @@ Both forms follow from [[Return]]: a `boolean` return narrows where the call is
 true, "exactly as `v is T` applies"; a ~void~ return narrows in every position
 the call dominates.
 
-An attempt at the `boolean` form established where the difficulty is, which is
-worth recording so the next one does not repeat it. The checker's
-`narrowingFactOf` is the right hook - it turns a test into a
-`{ name, type, negated }` fact, and the machinery that carries an `is` test
-through both branches carries anything it returns. A call arm added there did
-not fire, because the CALLEE's type was not available: the guard is reached by
-annotating a binding with a constructed type, and neither `staticType` nor
-`lookupDeclared` produced a function type for that binding at the point
-`narrowingFactOf` runs, which is BEFORE the test is walked. The control passes -
-`if (box is uint8)` narrows a `uint8 | string` correctly in the same shape - so
-the hook and the shape are right and the callee lookup is what needs solving.
+Two attempts at the `boolean` form narrowed the difficulty to one thing, which
+is worth recording so a third does not repeat them.
+
+**The guard type reaches the checker.** `#sec-compile-time-evaluability` confines
+evaluation to what "reads declarations rather than run-time bindings", and a
+CALL "resolves through imports to a function declaration, whose body these
+semantics interpret" - so the alias must be written as a call:
+
+```js
+function makeGuard() { return Reflect.makeType({ ... narrows: [...] }); }
+type Guard = makeGuard();      // statically resolved
+let bad: Guard = (5 := uint8); // refused BEFORE anything runs
+
+const Held = Reflect.makeType({ ... });
+type Alias = Held;             // a run-time BINDING - invisible to the checker
+let v: Alias = anything;       // accepted; the check happens at run time
+```
+
+That distinction is the clause's, not an engine artefact, and it is easy to get
+wrong: the binding form looks identical and silently degrades to a run-time
+check.
+
+**What blocks the consumption is the callee lookup.** `narrowingFactOf` is the
+right hook - it turns a test into a `{ name, type, negated }` fact, and the
+machinery that carries an `is` test through both branches carries anything it
+returns. A call arm added there never fires, because neither `staticType` nor
+`lookupDeclared` yields the callee's function type at that point, for a `const`
+binding OR for a parameter, though both are annotated with a resolvable `Guard`.
+The control passes in the identical shape - `if (box is uint8)` narrows a
+`uint8 | string` correctly - so the hook and the test shape are right.
+
+The likely resolution is the OTHER mechanism beside it: `walkGuarded` also
+builds a narrowing REQUEST, and its comment says that pass "can call `narrow`
+where this pass cannot". Declared narrowing probably belongs there rather than
+in the fact pass.
 
 `withThisType` is absent too, but it belongs to the standard kit - some seventy
 type-level functions - and the clause calls it three lines given a constructible
