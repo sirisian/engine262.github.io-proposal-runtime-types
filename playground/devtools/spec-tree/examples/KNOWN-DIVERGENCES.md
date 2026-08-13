@@ -35,7 +35,6 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
 | D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
 | D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
 | D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
@@ -377,26 +376,6 @@ field, which there now is.
 Affected examples: `sec-this-adoption` shows the extraction failing late and
 `sec-declared-narrowing` uses the built-in `is` test. Both want rewriting as the
 remaining pieces land.
-
-## D19 - ThreadLocal storage does not default to DefaultValueOf(T) (2026-08-10)
-
-`#sec-threadlocal-objects`: "An agent that has not written the storage reads
-DefaultValueOf(_T_)". The engine reads undefined instead, and a written value
-comes back untyped:
-
-```js
-const t = new ThreadLocal.<uint32>();
-t.value;               // undefined; spec: 0 (typed)
-new ThreadLocal.<string>().value;  // undefined; spec: ''
-t.value = 5; t.value;  // 5, untyped
-```
-
-DefaultValueOf itself is correct for ordinary bindings (`let d: uint32` reads
-`0 (typed)`), so this is the ThreadLocal storage path specifically. Compare D4,
-which is DefaultValueOf's other gap.
-
-Affected examples: `sec-threadlocal-objects`, which writes before reading.
-Restore the read-before-write line when this closes.
 
 ## D22 - (spec) DefaultValueOf's parameterized step can return a non-member (2026-08-11)
 

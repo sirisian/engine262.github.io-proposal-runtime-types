@@ -215,9 +215,9 @@ export const threading: ExampleChapter = [
   {
     section: "sec-threadlocal-objects",
     title: "Storage per agent",
-    summary: "Reading before writing should answer DefaultValueOf of the element type; the engine answers undefined (KNOWN-DIVERGENCES.md D19).",
-    code: "const t = new ThreadLocal.<uint32>();\nt.value = 5;\nconsole.log(t.value);",
-    expected: "5",
+    summary: "An agent that has not written the storage reads DefaultValueOf(T), so a ThreadLocal is usable before anything is put in it - and a write crosses the storage's type, as a write to any other typed storage does.",
+    code: "const t = new ThreadLocal.<uint32>();\nconsole.log(t.value, t.value is uint32);\nt.value = 5;\nconsole.log(t.value, t.value is uint32);",
+    expected: "0 (typed) true\n5 (typed) true",
   },
   {
     section: "sec-threading-parallel-iteration",
