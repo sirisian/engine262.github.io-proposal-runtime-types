@@ -120,9 +120,10 @@ export const layoutAndMisc: ExampleChapter = [
   {
     section: "sec-literal-freshness",
     title: "An undeclared property in a literal",
-    summary: "The spec makes an extra own property a type error against the literal; the engine accepts it (KNOWN-DIVERGENCES.md D16).",
-    code: "type Expected = { x: uint8 };\nlet ok: Expected = { x: 1 };\nconsole.log(ok.x);",
-    expected: "1 (typed)",
+    summary: "An own property the type neither declares nor admits is refused, reported against the property - and refused by the checking pass, so nothing runs. Freshness belongs to the LITERAL, so the same object reaching the position through a binding is accepted by width subtyping.",
+    code: "type Expected = { x: uint8 };\nconst viaBinding = { x: 1, extra: 2 };\nlet fine: Expected = viaBinding;\nconsole.log(\"the binding is fine:\", fine.x);\nlet bad: Expected = { x: 1, extra: 2 };",
+    throws: true,
+    expected: "",
   },
   {
     section: "sec-trial-specialization",

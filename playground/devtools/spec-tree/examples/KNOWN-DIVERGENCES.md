@@ -32,7 +32,7 @@ this one is not.
 | D10 | The complex operators and Math overloads are an extension obligation | **spec** | sec-extension-hooks |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
-| D16 | Object literal freshness is not enforced | engine | sec-literal-freshness |
+| D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D17 | Declarative checker facts unimplemented | engine + **spec** | sec-declarative-checker-facts, sec-this-adoption, sec-declared-narrowing |
 | D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
@@ -230,25 +230,6 @@ on the working substrate instead and cite this entry; loading a
 preprocessor module without applying its macros works and is what
 sec-preprocessor-modules ships.
 
-## D16 - Object literal freshness is not enforced (2026-08-10)
-
-`#sec-literal-freshness`: "an own property the expected type neither declares
-nor admits through an index signature is a type error, reported against the
-property". The engine accepts the extra property, at a binding and at an
-argument:
-
-```js
-type Expected = { x: uint8 };
-let bad: Expected = { x: 1, extra: 2 };   // accepted; bad.extra is 2
-function f(p: Expected) { return "took it"; }
-f({ x: 1, extra: 9 });                    // accepted
-```
-
-Width subtyping makes this sound for a value that already has a type; the
-freshness rule is specifically about the literal, which is what is missing.
-
-Affected examples: `sec-literal-freshness`, which currently shows only the
-accepted-and-correct case. The refusal is the example this section wants.
 ## D17 - Declarative checker facts are unimplemented (2026-08-10)
 
 `#sec-declarative-checker-facts` gives a Signature Record two further fields:
@@ -584,3 +565,37 @@ is to shift at the type's own width with the distance taken modulo that width.
 
 Affected examples: none. The engine suite pins both this and D9's `clz` beside
 each other, since the widths at which they fail are what tell the two apart.
+
+## D31 - An alias-typed parameter receives no contextual type at a call (2026-08-12)
+
+`#sec-literal-propagation`: a literal takes the type its position requires, and
+a parameter is such a position. Where the parameter's annotation is written
+INLINE this holds; where it names an alias, no contextual type reaches the
+argument at all, so every rule that depends on one is skipped and the error
+falls through to the run-time boundary:
+
+```js
+function inline(p: uint8) {}
+inline(300);          // TypeError at CHECK time: "a literal type of number is
+                      // not assignable to uint.<8>"
+
+type U = uint8;
+function alias(p: U) {}
+alias(300);           // RangeError at RUN time, from inside `alias`
+
+type E = { x: uint8 };
+function obj(p: E) {}
+obj({ x: 1, extra: 9 });   // accepted - #sec-literal-freshness never runs,
+                           // where the inline spelling refuses it
+```
+
+The same alias in a BINDING is unaffected - `let bad: E = { x: 1, extra: 2 }` is
+refused - so this is the argument position specifically.
+
+Found while implementing literal freshness, which is the rule whose absence
+made it visible: the freshness refusal fires for an inline parameter type and
+not for an alias naming the same type. The engine's suite pins both, so the
+divergence is recorded at the site that will close it.
+
+Affected examples: none. The `sec-literal-freshness` example uses a binding and
+an inline parameter type.
