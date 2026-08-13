@@ -277,9 +277,28 @@ defined." Measured rather than assumed: inside a literal at a contextual type
 carrying a `this`, `let s: string = this.x` is accepted where `x` is a `uint8`,
 so `this` is untyped there.
 
-So this is not a hook to fill but a frame-level `this` type to introduce, with
-the recursion hazard the existing comment names. That is a design decision
-rather than an implementation gap.
+The recursion hazard turns out NOT to be the obstacle, and the design question
+answers itself once the clause's sentence is split in two. Adoption is defined
+only "where a non-arrow function literal's contextual type is a ~function~ type
+whose applicable signature has a [[ThisType]]" - and that type is fully built by
+then, since `#sec-compile-time-evaluability` requires "the type is built first
+and the literal is checked against it". So a frame carries a `this` type ONLY
+where a literal adopted one, class bodies keep `this` untyped exactly as today,
+and nothing is computed while it is being asked for. Building it that way -
+frame field, adoption recorded at the contextual position, a `ThisExpression`
+arm in `staticType` - is straightforward and was done.
+
+**What stops it is the same gap as D31 and D32.** A function literal never
+RECEIVES a contextual type. Measured in one program: a `NumericLiteral` at a
+typed position is offered its contextual type and a `FunctionExpression` at an
+annotated binding is offered nothing, so the adoption never fires however
+correctly the frame is wired.
+
+That unifies three entries. D31 (an alias-typed parameter gets no contextual
+type at a call), D32 (a function literal argument is not checked against the
+parameter's type) and this are one underlying gap: **contextual typing does not
+reach function literals**. Closing that unblocks all three, and none of them can
+be closed without it.
 
 Attempting 1 established two things worth recording, since they bound what a
 fix can achieve:
