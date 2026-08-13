@@ -35,7 +35,6 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D18 | Parameterized primitive families unbound in expression position | engine | sec-canonicalizetype |
 | D19 | ThreadLocal storage does not default to DefaultValueOf(T) | engine | sec-threadlocal-objects |
 | D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
 | D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
@@ -378,34 +377,6 @@ field, which there now is.
 Affected examples: `sec-this-adoption` shows the extraction failing late and
 `sec-declared-narrowing` uses the built-in `is` test. Both want rewriting as the
 remaining pieces land.
-
-## D18 - Parameterized primitive families are not bound in expression position (2026-08-10)
-
-`#sec-types-in-expression-position`: "A type name is already an expression,
-since a type is a value, so `uint8` and `Map.<string, uint8>` may be written
-where a value is expected." The named shorthands and the generic classes obey
-this; the parameterized primitive families do not, because their bases are not
-bindings at all:
-
-```js
-typeof uint8;      // 'object'   - shorthand, fine
-typeof Map;        // 'function' - generic class, fine
-typeof int;        // 'undefined'  \
-typeof uint;       // 'undefined'   } no binding for the family base,
-typeof vector;     // 'undefined'   } so a parameterized reference cannot
-typeof complex;    // 'undefined'  /  resolve in expression position
-int.<8> === int8;  // ReferenceError: "int" is not defined
-typeof uint.<4>;   // 'undefined'
-```
-
-Type position is unaffected (`type B = int.<8>` interns equal to `int8`, and
-`type V = vector.<float32, 4>` equals `float32x4`), and a metadata
-parameterization of a shorthand works (`typeof float64.<{ m: 1 }>` is
-'object') because its base is bound. So the gap is exactly the family bases.
-
-Affected examples (both use the alias form and should use the direct
-expression once this is fixed): `sec-canonicalizetype`, and any future
-example wanting `int.<N>`/`uint.<N>`/`vector.<T, N>` as a value.
 
 ## D19 - ThreadLocal storage does not default to DefaultValueOf(T) (2026-08-10)
 

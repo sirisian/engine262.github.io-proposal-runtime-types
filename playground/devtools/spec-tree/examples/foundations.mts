@@ -79,9 +79,9 @@ export const foundations: ExampleChapter = [
   {
     section: "sec-canonicalizetype",
     title: "Canonical forms",
-    summary: "Aliases of one primitive and reorderings of one union canonicalize to one type (int.<8> is spelled through an alias because the family bases are not bound in expression position: KNOWN-DIVERGENCES.md D18).",
-    code: "type A = int8;\ntype B = int.<8>;\nconsole.log(A === B);\ntype U1 = (uint8 | string) | uint16;\ntype U2 = uint16 | (string | uint8);\nconsole.log(U1 === U2);",
-    expected: "true\ntrue",
+    summary: "Aliases of one primitive and reorderings of one union canonicalize to one type - and the same canonical form answers whether it is reached through a type alias or written directly where a value is expected.",
+    code: "console.log(int.<8> === int8);\ntype U1 = (uint8 | string) | uint16;\ntype U2 = uint16 | (string | uint8);\nconsole.log(U1 === U2);\nconsole.log(vector.<float32, 4> === float32x4);",
+    expected: "true\ntrue\ntrue",
   },
   {
     section: "sec-gettypeobject",
