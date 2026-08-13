@@ -9,8 +9,8 @@ export const referencesAndRegexes: ExampleChapter = [
   {
     section: "sec-references-and-borrowing",
     title: "A ref parameter writes back",
-    summary: "The typed write lands in the caller's binding (a bare literal written through the ref currently untypes it: KNOWN-DIVERGENCES.md D12).",
-    code: "function f(ref x: uint8) { x = (2 := uint8); }\nlet v: uint8 = 1;\nf(ref v);\nconsole.log(v, v instanceof uint8);",
+    summary: "The write lands in the caller's binding, and a bare literal takes the type the position requires - the ref writes through to the binding, so the binding's own annotation is what the value crosses.",
+    code: "function f(ref x: uint8) { x = 2; }\nlet v: uint8 = 1;\nf(ref v);\nconsole.log(v, v instanceof uint8);",
     expected: "2 (typed) true",
   },
   {

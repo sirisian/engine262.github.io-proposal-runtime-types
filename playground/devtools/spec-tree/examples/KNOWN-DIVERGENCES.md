@@ -31,7 +31,6 @@ this one is not.
 | D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
 | D10 | The complex operators and Math overloads are an extension obligation | **spec** | sec-extension-hooks |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
-| D12 | Literal written through a typed `ref` untypes the binding | engine | sec-references-and-borrowing |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D14 | Getter shape retrieval returns the setter | engine | sec-retrieval-overloaded-targets |
 | D15 | Deferred application unusable as a binding's type | engine | sec-deferred-applications |
@@ -205,27 +204,6 @@ structural generic applications too - `SBox.<uint8>` is accepted where
 `SBox.<uint8 | string>` is required for `type SBox<T> = { value: T }` -
 so nominal generics are the reliable way to demonstrate invariance.
 
-## D12 - A literal written through a typed ref parameter untypes the binding (2026-08-10)
-
-`#sec-literal-propagation`: a literal takes the type its position requires,
-and a `ref x: uint8` parameter is such a position
-(`#sec-reference-parameters-and-arguments`). The engine stores a plain Number
-instead, which then breaks the caller's binding's own invariant:
-
-```js
-function f(ref x: uint8) { x = 2; }
-let v: uint8 = 1;
-f(ref v);
-v instanceof uint8;   // false; v now holds an untyped 2
-f(ref v);             // TypeError: the argument bound by ref to "x" does
-                      // not satisfy its type annotation
-```
-
-Writing an already-typed value (`x = (2 := uint8)`) round-trips correctly;
-the chapter example uses that spelling and cites this entry.
-
-Affected examples: `sec-references-and-borrowing`, which writes an already-typed
-value through the ref.
 ## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
 
 `#sec-expansion` and `#sec-applyreplacementdecorator`. Two stacked failures,
