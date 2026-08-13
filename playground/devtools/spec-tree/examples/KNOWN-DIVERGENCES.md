@@ -290,10 +290,26 @@ Reflect.makeType({ kind: "function", signatures: [{ parameters: [{ name: "v", ty
 // reflected signature: parameters, return
 ```
 
-Both consumption forms follow from [[Return]]: a `boolean` return narrows where
-the call is true, "exactly as `v is T` applies"; a ~void~ return narrows in
-every position the call dominates; any other return with a non-empty [[Narrows]]
-is a type error. The checker's narrowing machinery already exists for `is`.
+The DATA half has landed: a signature carries [[Narrows]], constructs and
+reflects it, it is part of the signature's identity, and a non-empty [[Narrows]]
+on a signature returning anything but `boolean` or ~void~ is refused where it is
+built. What remains is the CONSUMPTION.
+
+Both forms follow from [[Return]]: a `boolean` return narrows where the call is
+true, "exactly as `v is T` applies"; a ~void~ return narrows in every position
+the call dominates.
+
+An attempt at the `boolean` form established where the difficulty is, which is
+worth recording so the next one does not repeat it. The checker's
+`narrowingFactOf` is the right hook - it turns a test into a
+`{ name, type, negated }` fact, and the machinery that carries an `is` test
+through both branches carries anything it returns. A call arm added there did
+not fire, because the CALLEE's type was not available: the guard is reached by
+annotating a binding with a constructed type, and neither `staticType` nor
+`lookupDeclared` produced a function type for that binding at the point
+`narrowingFactOf` runs, which is BEFORE the test is walked. The control passes -
+`if (box is uint8)` narrows a `uint8 | string` correctly in the same shape - so
+the hook and the shape are right and the callee lookup is what needs solving.
 
 `withThisType` is absent too, but it belongs to the standard kit - some seventy
 type-level functions - and the clause calls it three lines given a constructible
