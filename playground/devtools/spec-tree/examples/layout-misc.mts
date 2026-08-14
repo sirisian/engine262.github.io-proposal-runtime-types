@@ -155,10 +155,10 @@ export const layoutAndMisc: ExampleChapter = [
   },
   {
     section: "sec-complex-numbers",
-    title: "What the extension delivers, and what it owes",
-    summary: "The type, the literal and the conversions are this document's; the operators and the Math additions are the extension's, and the hooks table is a map of obligations rather than a specification of them (KNOWN-DIVERGENCES.md D10).",
-    code: "console.log(typeof complex64, (type complex128).byteLength, typeof Math.conj);",
-    expected: "'object' 16 'undefined'",
+    title: "The type, and the extension that completes it",
+    summary: "This document delivers the type, the literal and the conversions; the operators and the Math additions come from the extension the hooks table names, whose arithmetic is C99 Annex G's over the components.",
+    code: "console.log(typeof complex64, (type complex128).byteLength);\nconsole.log((complex(3, 4) * complex(1, 2)).toString(), Math.conj(complex(3, 4)).toString());",
+    expected: "'object' 16\n'-5+10i' '3-4i'",
   },
   {
     section: "sec-ranges",

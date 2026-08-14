@@ -44,6 +44,14 @@ export const operators: ExampleChapter = [
   },
   {
     section: "sec-which-operations-each-family-defines",
+    title: "The complex family computes, and refuses what it does not define",
+    summary: "Multiply, divide and the rest are defined over the pair; lessThan is not, since the complex numbers are not ordered. The arithmetic is C99 Annex G's, which is what an engine backed by a hardware complex type implements.",
+    code: "const a = complex(3, 4), b = complex(1, 2);\nconsole.log((a * b).toString(), (a / b).toString());\nconsole.log(Math.abs(a), Math.conj(a).toString());\na < b;",
+    throws: true,
+    expected: "'-5+10i' '2.2-0.4i'\n5 '3-4i'",
+  },
+  {
+    section: "sec-which-operations-each-family-defines",
     title: "Families define different operations",
     summary: "Bitwise operations belong to the integer family; a float operand is refused.",
     code: "let f: float32 = 1.5;\nf & f;",
