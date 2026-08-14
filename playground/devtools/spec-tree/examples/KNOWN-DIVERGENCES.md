@@ -35,7 +35,6 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
 | D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
@@ -400,56 +399,6 @@ let d: Meter;   // step 12 as written yields 0, which is not a Meter
 The engine tests membership instead, which subsumes the judgment and honours
 the contract, so a brand's parameterization has no default. Suggested wording
 for the step: "If _d_ is not a value of the type _t_, return ~none~."
-
-## D24 - A specialized generic's field type is not substituted (2026-08-11)
-
-`#sec-generic-specialization` makes each application a distinct type, and a
-field declared at a parameter should hold the argument's type once the
-parameter is bound. The engine substitutes a METHOD's parameter types and
-leaves the FIELD's alone, so the field is both undefaulted and unchecked:
-
-```js
-class Box<T> { value: T; set(v: T) { this.value = v; } }
-const b = new Box.<uint8>();
-b.value = "a string";   // ACCEPTED - the field's type is still the unbound
-                        // parameter, so nothing checks it
-b.value = 5;
-b.value is uint8;       // false - not even converted
-new Box.<uint8>().value;   // undefined, where a uint8 field reads 0
-b.set("a string");      // correctly refused: method parameters DO substitute
-```
-
-Two consequences beyond the unsoundness. `DefaultValueOf`'s ~parameter~ case
-answers ~none~ deliberately - its comment records that answering otherwise made
-a field of a parameter type report "undefined is not assignable to parameter"
-for a declaration a concrete type accepts - and that workaround is only
-necessary because the parameter is still there at specialization. And the
-no-default refusal (formerly D21) exempts ~parameter~ for the same reason: there
-is no point at which the bound type could be checked. **The exemption lifts when
-this closes**, and the exemption's comment says so at
-`src/type-system/runtime.mts` and the two declaration sites.
-
-A deferred application in a field is the shape a program is most likely to meet
-this through, and the error names the parameter rather than the gap:
-
-```js
-function pairOf(T) { return Reflect.makeType({ kind: "tuple",
-  elements: [{ type: T, rest: false }, { type: T, rest: false }] }); }
-class Box<T> { p: pairOf(T); }
-new Box.<uint8>();
-// TypeError: "[T, T]" has no default value, so a declaration of it needs
-//            an initializer
-```
-
-`#sec-deferred-applications` works everywhere the parameter IS bound - a
-binding, a parameter, a return, and nested inside itself, all inside a generic
-body - so a field is the one position that fails, and it fails for this entry's
-reason. The rule reporting it is the one that refuses a declaration whose type
-has no default; that rule is doing its job on a type this gap left
-unsubstituted.
-
-Affected examples: none - the tree has no example of a generic class field.
-Add one to `sec-generic-specialization` when this closes.
 
 ## D25 - A `var` binding does not take its type's default (2026-08-11)
 

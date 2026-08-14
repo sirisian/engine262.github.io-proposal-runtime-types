@@ -23,6 +23,14 @@ export const generics: ExampleChapter = [
   },
   {
     section: "sec-generic-specialization",
+    title: "A field takes the argument's type",
+    summary: "Each application is a distinct type, so a field declared at a parameter holds what the application supplied - it defaults from that type and refuses what the type forbids, exactly as a concrete field does.",
+    code: "class Box<T> { value: T; }\nconst b = new Box.<uint8>();\nconsole.log(b.value, b.value is uint8);\nb.value = 5;\nconsole.log(b.value, b.value is uint8);\nb.value = \"a string\";",
+    throws: true,
+    expected: "0 (typed) true\n5 (typed) true",
+  },
+  {
+    section: "sec-generic-specialization",
     title: "Instantiations do not mix",
     summary: "Each application is a distinct type; A.<uint8> is not an A.<uint16>.",
     code: "class A<T> {}\nconst x: A.<uint16> = new A.<uint8>();",
