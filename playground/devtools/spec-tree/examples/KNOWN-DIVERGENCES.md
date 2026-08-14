@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D8 | Writable members are wrongly covariant in depth | engine | sec-generic-variance (nominal form used) |
 | D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
@@ -63,30 +62,6 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D8 - Writable members are wrongly covariant in depth (2026-08-10)
-
-`#sec-isobjectsubtype` requires SameTypeWithAssumptions for a writable member
-("A writable member is invariant, because covariance there is unsound"). The
-engine accepts the subtype:
-
-```js
-type MutSrc = { x: uint8 };
-type MutTarget = { x: uint8 | string };
-Reflect.isAssignable(MutSrc, MutTarget);  // true; spec: false
-```
-
-This is exactly the unsoundness the spec's own note names: through the
-supertype view a string could be written into a slot the program believes
-holds a uint8.
-
-The readonly half of the depth rule is now enforced: a write through a
-`readonly` member is refused, so its covariance is sound for the reason the
-clause gives. This entry is the other half - a WRITABLE member is not invariant
-- and closing the first did not close it.
-
-Affected examples: `sec-generic-variance` demonstrates invariance with a
-nominal generic, since the structural form is wrongly accepted here. The
-depth rule itself has no example until this closes.
 ## D9 - int64/uint64 values are double-backed, not exact (2026-08-10)
 
 `#sec-integer-types`: the integer types are exact N-bit two's complement, and
