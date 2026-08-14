@@ -21,6 +21,13 @@ export const typeUniverse: ExampleChapter = [
   },
   {
     section: "sec-integer-types",
+    title: "Sixty-four bits, exactly",
+    summary: "An integer type is exact N-bit two's complement, so a value past 2^53 keeps every bit a double would lose - adjacent values stay distinct, the maximum parses and prints, and the wrap happens at the type's own width rather than at a double's precision.",
+    code: "console.log(String(int64.parse(\"9223372036854775807\")));\nconsole.log((1152921504606846976 := int64) === (1152921504606846977 := int64));\nconsole.log(String((9223372036854775807 := int64) + (1 := int64)));\nconsole.log(String(uint.<200>.parse(\"1606938044258990275541962092341162602522202993782792835301375\")));",
+    expected: "'9223372036854775807'\nfalse\n'-9223372036854775808'\n'1606938044258990275541962092341162602522202993782792835301375'",
+  },
+  {
+    section: "sec-integer-types",
     title: "Any width you name",
     summary: "int.<24> is an ordinary integer type; 8388607 is its maximum.",
     code: "type A = int.<24>;\ntype B = int.<24>;\nconsole.log(A === B);\nlet x: A = 8388607;\nconsole.log(x);",
@@ -169,7 +176,7 @@ export const typeUniverse: ExampleChapter = [
   {
     section: "sec-numeric-types-of-this-proposal",
     title: "Every family, one spelling",
-    summary: "Typed values of each family print as themselves (int64 beyond 2^53 is currently double-backed: KNOWN-DIVERGENCES.md D9).",
+    summary: "Typed values of each family print as themselves.",
     code: "console.log((65535 := uint16), (127 := int8), (1.5 := float32));",
     expected: "65535 (typed) 127 (typed) 1.5 (typed)",
   },

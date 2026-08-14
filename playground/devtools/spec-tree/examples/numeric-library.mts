@@ -59,7 +59,7 @@ export const numericLibrary: ExampleChapter = [
   {
     section: "sec-numeric-predicates",
     title: "The predicates answer for typed values",
-    summary: "An int64 past 2^53 is not a safe integer (and is currently double-backed: KNOWN-DIVERGENCES.md D9).",
+    summary: "An int64 past 2^53 is not a safe integer - the predicate is about what a Number holds exactly, and the int64 holds the value exactly whatever the answer.",
     code: "console.log(Number.isInteger((3 := int32)), Number.isSafeInteger((1152921504606846976 := int64)));",
     expected: "true false",
   },

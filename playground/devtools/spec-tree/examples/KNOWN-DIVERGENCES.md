@@ -27,7 +27,7 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D9 | int64/uint64 are double-backed, not exact | engine | sec-numeric-predicates, sec-numeric-types-of-this-proposal |
+| D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
 | D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
@@ -62,46 +62,6 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D9 - int64/uint64 values are double-backed, not exact (2026-08-10)
-
-`#sec-integer-types`: the integer types are exact N-bit two's complement, and
-`#sec-memory-layout` gives `int64` a 64-bit layout. Past 2^53 the engine
-stores the value in a float64 instead:
-
-```js
-(1152921504606846976 := int64) === (1152921504606846977 := int64);  // true
-String(int64.parse("1152921504606846976"));  // '1152921504606847000'
-Number((9007199254740993 := int64) - (9007199254740992 := int64));  // 0
-```
-
-Number.isSafeInteger correctly answers false for these, but the stored value
-itself has already lost the low bits. Examples avoid printing int64 values
-beyond 2^53.
-
-Three consequences the original entry missed, each found by sweeping every
-operation over a wide type:
-
-```js
-int64.parse("9223372036854775807");   // RangeError - a type cannot parse its
-uint64.parse("18446744073709551615"); // RangeError   OWN MAXIMUM, since the
-                                      //              range check rounds first
-(18014398509481983 := uint.<54>);     // 0 - the wrap is computed AFTER the
-                                      //     rounding, so 2^54 - 1 becomes 2^54
-9007199254740993n := int64;           // TypeError, and int64(x) likewise, so no
-                                      // route admits an exact wide value at all
-Math.clz((1 := uint64));              // 64, where uint.<40> correctly gives 39
-```
-
-The scope is every width above 53, not the named ones: `#sec-integer-types`
-admits _N_ up to 2^16, and `uint.<54>` and `uint.<200>` are as affected as
-`int64`. Stage 1 of the fix has landed - the carrier is now `number | bigint`
-and `Number.isSafeInteger` reads it exactly - and the engine's tests pin each
-line above so the remaining stages have their targets.
-
-Affected examples: `sec-numeric-predicates` and
-`sec-numeric-types-of-this-proposal`, which keep their printed values below
-2^53. An exact-64-bit example belongs at `sec-integer-types` once this
-closes.
 ## D11 - (spec) Variance declarations have semantics but no grammar (2026-08-10)
 
 `#sec-generic-variance` states what a variance declaration means ("A type
@@ -438,27 +398,37 @@ covariance.
 While this is open, a conforming implementation without the store rule is
 unsound and the specification does not say so.
 
-## D30 - Shift operators use 32-bit semantics above width 32 (2026-08-12)
+## D30 - Shift operators use 32-bit semantics for widths 33 to 53 (2026-08-12, narrowed 2026-08-13)
 
 `#sec-integer-operations` gives each integer type the operations of its family
 at its own width. The shifts are performed with JavaScript's 32-bit semantics
-instead, so a shift distance is taken modulo 32 and the result is computed in
-32 bits:
+for one band of widths, and the boundary is exact:
 
 ```js
-(1 := uint64) << (40 := uint64);        // 256   - 40 mod 32 = 8
-(1 := uint64) << (33 := uint64);        // 2     - 33 mod 32 = 1
-(1 := uint.<33>) << (32 := uint.<33>);  // 1     - and 2^32 IS exact in a double
-(1 := uint32) << (31 := uint32);        // 2147483648 - correct
+(1 := uint.<33>) << (32 := uint.<33>);   // 1            - want 2**32
+(1 := uint.<52>) << (32 := uint.<52>);   // 1            - want 2**32
+(1 := uint.<53>) << (32 := uint.<53>);   // 1            - want 2**32
+(1 := uint.<54>) << (32 := uint.<54>);   // 4294967296   - correct
+(1 := uint64) << (40 := uint64);         // 2**40        - correct
+(1 := uint32) << (31 := uint32);         // 2**31        - correct
 ```
 
-Separate from D9 despite looking like it, and the `uint.<33>` line is the proof:
-2^32 is exactly representable in a float64, so the exactness work does not reach
-this. The defect belongs to the operator rather than to the value, and the fix
-is to shift at the type's own width with the distance taken modulo that width.
+53/54 is the BIGINT CARRIER's line. The wide-integer work made that path exact
+and the shift became exact with it; the widths from 33 to 53 are Number-backed -
+a double holds them exactly, so nothing there needed changing for exactness -
+and they kept the 32-bit shift they always had.
 
-Affected examples: none. The engine suite pins both this and D9's `clz` beside
-each other, since the widths at which they fail are what tell the two apart.
+Worth stating so this is not misread as the wide-integer work being unfinished:
+every value in this band is exactly representable in a double and nothing is
+lost to rounding. The shift is computed in the wrong NUMBER OF BITS, which is a
+different defect that was merely masked above 53.
+
+The fix is to compute a shift for a type of width _N_ at _N_ bits whatever the
+carrier - the distance modulo _N_, the result modulo 2**_N_ - rather than to
+widen the carrier, which would cost every operation in the band for no exactness
+gain.
+
+Affected examples: none.
 
 ## D31 - An alias-typed parameter receives no contextual type at a call (2026-08-12)
 
@@ -557,3 +527,31 @@ that is worth its cost is the question the entry poses rather than answers.
 Affected examples: none. The engine suite pins both halves - the function-scoped
 case enforcing and the top-level case not - so the split is visible rather than
 assumed.
+
+## D34 - A boxed typed number loses its exact carrier (2026-08-13)
+
+A wide integer carries a BigInt, and every string conversion reads it exactly -
+except a method call whose receiver is boxed:
+
+```js
+const w = (9223372036854775807 := int64) + (1 := int64);
+String(w);                                          // '-9223372036854775808'
+w.toString();                                       // '-9223372036854775808'
+
+String((9223372036854775807 := int64) + (1 := int64));    // exact
+((9223372036854775807 := int64) + (1 := int64)).toString(); // '-9223372036854775807'
+```
+
+The same value answers exactly through a binding and inexactly inline. A method
+call on a primitive boxes its receiver, and the box's [[NumberData]] is an
+ordinary Number - so the carrier is collapsed before the method sees it, and
+`Number.prototype.toString`'s exact path cannot fire because the receiver is no
+longer a typed value.
+
+The fix belongs at the boxing rather than at each method: a box made from a
+typed number should keep the typed value, so every method of the prototype sees
+what the binding sees. `toString` is only the case that shows it - `toFixed`,
+`toPrecision` and `valueOf` are on the same path.
+
+Affected examples: none. `sec-integer-types` writes its conversions as
+`String(x)`, which is exact.
