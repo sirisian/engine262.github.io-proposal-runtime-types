@@ -21,6 +21,13 @@ export const typeUniverse: ExampleChapter = [
   },
   {
     section: "sec-integer-types",
+    title: "The same value, whichever way it is asked",
+    summary: "A wide literal's exact digits come from its source text, so every route to its text agrees - a value that read exactly through one spelling and wrapped through another was reading a double the lexer scanned rather than the digits the program wrote.",
+    code: "console.log(String((9223372036854775807 := int64)));\nconsole.log((9223372036854775807 := int64).toString());\nconsole.log((1606938044258990275541962092341162602522202993782792835301375 := uint.<200>).toString());",
+    expected: "'9223372036854775807'\n'9223372036854775807'\n'1606938044258990275541962092341162602522202993782792835301375'",
+  },
+  {
+    section: "sec-integer-types",
     title: "Sixty-four bits, exactly",
     summary: "An integer type is exact N-bit two's complement, so a value past 2^53 keeps every bit a double would lose - adjacent values stay distinct, the maximum parses and prints, and the wrap happens at the type's own width rather than at a double's precision.",
     code: "console.log(String(int64.parse(\"9223372036854775807\")));\nconsole.log((1152921504606846976 := int64) === (1152921504606846977 := int64));\nconsole.log(String((9223372036854775807 := int64) + (1 := int64)));\nconsole.log(String(uint.<200>.parse(\"1606938044258990275541962092341162602522202993782792835301375\")));",

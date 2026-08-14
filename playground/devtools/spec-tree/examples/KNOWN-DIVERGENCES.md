@@ -27,7 +27,6 @@ this one is not.
 
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
-| D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
@@ -421,30 +420,3 @@ divergence is recorded at the site that will close it.
 Affected examples: none. The `sec-literal-freshness` example uses a binding and
 an inline parameter type.
 
-## D34 - A boxed typed number loses its exact carrier (2026-08-13)
-
-A wide integer carries a BigInt, and every string conversion reads it exactly -
-except a method call whose receiver is boxed:
-
-```js
-const w = (9223372036854775807 := int64) + (1 := int64);
-String(w);                                          // '-9223372036854775808'
-w.toString();                                       // '-9223372036854775808'
-
-String((9223372036854775807 := int64) + (1 := int64));    // exact
-((9223372036854775807 := int64) + (1 := int64)).toString(); // '-9223372036854775807'
-```
-
-The same value answers exactly through a binding and inexactly inline. A method
-call on a primitive boxes its receiver, and the box's [[NumberData]] is an
-ordinary Number - so the carrier is collapsed before the method sees it, and
-`Number.prototype.toString`'s exact path cannot fire because the receiver is no
-longer a typed value.
-
-The fix belongs at the boxing rather than at each method: a box made from a
-typed number should keep the typed value, so every method of the prototype sees
-what the binding sees. `toString` is only the case that shows it - `toFixed`,
-`toPrecision` and `valueOf` are on the same path.
-
-Affected examples: none. `sec-integer-types` writes its conversions as
-`String(x)`, which is exact.
