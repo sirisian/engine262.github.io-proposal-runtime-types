@@ -35,7 +35,6 @@ this one is not.
 | D33 | A top-level `var` does not enforce its type on assignment | engine | sec-typed-bindings |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
-| D28 | Deleting a tuple position is not refused | engine | sec-array-defaults-and-stores |
 | D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
 | D30 | Shift operators use 32-bit semantics above width 32 | engine | sec-integer-operations |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
@@ -327,23 +326,6 @@ element store, a tuple position store, and a field.
 
 Affected examples: none. The engine suite pins the tuple and array forms and
 cites this entry.
-
-## D28 - Deleting a tuple position is not refused (2026-08-12)
-
-`#sec-array-defaults-and-stores`: "Deleting an element of a typed array throws a
-*TypeError* exception." A tuple is an array whose positions are typed, and a
-delete succeeds:
-
-```js
-type T = [uint8, string];
-let t: T = [1, "s"];
-delete t[0];        // true; the tuple now has a hole where a uint8 was declared
-```
-
-The store rule for a tuple position now exists; the delete rule does not, and it
-is the same sentence's other half.
-
-Affected examples: none. The engine suite pins it and cites this entry.
 
 ## D29 - (spec) Tuple covariance is stated without a store rule (2026-08-12)
 

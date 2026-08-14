@@ -29,6 +29,14 @@ export const arraysAndExtensions: ExampleChapter = [
   },
   {
     section: "sec-array-defaults-and-stores",
+    title: "A hole is not a shortening",
+    summary: "Deleting a typed element throws, and a tuple position is one - a delete leaves the length alone and puts a hole where a declared type says a value is, while `pop` removes an element and leaves a shorter array, which is why only one of them is refused.",
+    code: "type T = [uint8, string];\nlet t: T = [1, \"s\"];\nconsole.log(t.pop());\ndelete t[0];",
+    throws: true,
+    expected: "'s'",
+  },
+  {
+    section: "sec-array-defaults-and-stores",
     title: "An element default fills the gap",
     summary: "The tuple type declares an initial value, so the empty literal still produces a full tuple.",
     code: "const a: [uint8 = 5] = [];\nconsole.log(a[0]);",
