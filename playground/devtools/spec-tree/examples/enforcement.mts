@@ -59,6 +59,21 @@ export const enforcement: ExampleChapter = [
   },
   {
     section: "sec-check-insertion",
+    title: "A callback takes its parameter types from the position",
+    summary: "The literal's parameters come from the position it stands in, so a callback needs no annotations - and that is what its own type is built from, rather than being a substitute for checking it.",
+    code: "const a: [].<uint8> = [1, 2, 3];\nconsole.log(a.map((x) => x + (1 := uint8))[0]);\nconsole.log(a.filter((x) => x > (1 := uint8)).length);",
+    expected: "2 (typed)\n2",
+  },
+  {
+    section: "sec-check-insertion",
+    title: "A function literal is checked where it stands",
+    summary: "An argument is a check site, and a literal written at one is checked like anything else - a written return that does not match is refused before anything runs, which is why nothing prints.",
+    code: "function h(f: (x: uint8) => uint8) { return \"took\"; }\nh((x: uint8): string => \"wrong\");",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-check-insertion",
     title: "Returns are boundaries too",
     summary: "An any value crossing a declared return type is checked exactly like an assignment.",
     code: "function get(): uint8 { let boxed: any = 300; return boxed; }\nget();",

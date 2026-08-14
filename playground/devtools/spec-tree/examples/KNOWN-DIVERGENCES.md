@@ -30,7 +30,6 @@ this one is not.
 | D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
-| D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
@@ -421,39 +420,6 @@ divergence is recorded at the site that will close it.
 
 Affected examples: none. The `sec-literal-freshness` example uses a binding and
 an inline parameter type.
-
-## D32 - A function literal argument is not checked against the parameter's type (2026-08-13)
-
-`#table-check-sites` makes an argument a check site, and a bound function of the
-wrong type is refused there. A function LITERAL written at the same position is
-not checked at all:
-
-```js
-type FN = (x: uint8) => uint8;
-function h(f: FN) { return "took it"; }
-
-h((x) => "wrong");                              // accepted
-function inline(f: (x: uint8) => uint8) {}
-inline((x) => "wrong");                         // accepted - the same either way
-
-const bound: (x: string) => string = (x) => x;
-h(bound);                                       // TypeError: "(x: string) =>
-                                                // string" is not assignable to
-                                                // "(x: uint.<8>) => uint.<8>"
-```
-
-So the gap is the LITERAL rather than the position or the spelling - the mirror
-of `#sec-literal-freshness`, where an object literal at a typed position gets a
-rule of its own. Unlike the object case there is no freshness question here: a
-function literal at a function-typed position should simply be checked against
-it.
-
-Found while implementing `#sec-this-adoption`, whose variance rule this hides:
-with no source boundary consulting a function type against a literal, a `this`
-mismatch cannot be produced from source at all, and the rule is observable only
-through `Reflect.isAssignable`.
-
-Affected examples: none.
 
 ## D34 - A boxed typed number loses its exact carrier (2026-08-13)
 
