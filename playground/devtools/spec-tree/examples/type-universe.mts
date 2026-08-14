@@ -28,6 +28,13 @@ export const typeUniverse: ExampleChapter = [
   },
   {
     section: "sec-binary-floating-point-types",
+    title: "The widest binary float holds what the narrower ones round away",
+    summary: "Every binary64 value is exactly a binary128 value, so a double crossing into float128 keeps every bit - and printing it shows the value the double actually is, rather than the shortest text that reads back as it.",
+    code: "let d: float64 = 0.1;\nconsole.log(d);\nlet w: float128 = 0.1;\nconsole.log(w.toString());",
+    expected: "0.1 (typed)\n'0.1000000000000000055511151231257827021181583404541015625'",
+  },
+  {
+    section: "sec-binary-floating-point-types",
     title: "A literal rounds to its position",
     summary: "float16 cannot hold pi's digits; the literal takes the nearest representable value.",
     code: "let h: float16 = 1.5;\nconsole.log(h);\nlet p: float16 = 3.14159;\nconsole.log(p);",

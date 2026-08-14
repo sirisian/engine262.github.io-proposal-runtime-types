@@ -35,7 +35,6 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D23 | float128 has no value representation | engine | sec-binary-floating-point-types |
 | D24 | A specialized generic's field type is not substituted | engine | sec-generic-specialization |
 | D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
@@ -401,34 +400,6 @@ let d: Meter;   // step 12 as written yields 0, which is not a Meter
 The engine tests membership instead, which subsumes the judgment and honours
 the contract, so a brand's parameterization has no default. Suggested wording
 for the step: "If _d_ is not a value of the type _t_, return ~none~."
-
-## D23 - float128 has no value representation (2026-08-11)
-
-`#sec-binary-floating-point-types` gives `float16`, `float32`, `float64` and
-`float128` values "of the corresponding IEEE 754-2019 binary interchange
-formats", and `#table-binary-float-types` gives float128 its width and
-precision. The type object exists and can be annotated with, but no value of it
-can be made by any route:
-
-```js
-let x: float128 = 1.5;   // TypeError: "a literal type of number" is not
-                         //            assignable to "float128"
-(1.5 := float128);       // TypeError: 1.5 is not assignable to "float128"
-float128(1.5);           // the same
-let f: float128;         // undefined - it has no zero either, since there is
-                         // no value to be the zero
-```
-
-This is a completeness gap rather than a behavioural divergence, and the
-specification expects implementations to differ here: "Coverage is not
-conditioned on which types an implementation has values for: the `float128` and
-decimal rows are as normative as the rest." The decimal families do have values,
-so this is float128 alone among the binary floats, and it is the sibling of D10
-rather than of the defaulting entries.
-
-Affected examples: none. The engine suite's `sec-defaultvalueof` test pins
-`let f: float128;` as undefined and cites this entry, so the gap is recorded
-rather than read as an oversight in the defaulting rule.
 
 ## D24 - A specialized generic's field type is not substituted (2026-08-11)
 
