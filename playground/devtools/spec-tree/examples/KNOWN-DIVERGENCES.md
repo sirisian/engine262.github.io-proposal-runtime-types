@@ -35,7 +35,7 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D25 | A `var` binding does not take its type's default | engine | sec-defaultvalueof |
+| D33 | A top-level `var` does not enforce its type on assignment | engine | sec-typed-bindings |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
 | D28 | Deleting a tuple position is not refused | engine | sec-array-defaults-and-stores |
@@ -400,29 +400,6 @@ The engine tests membership instead, which subsumes the judgment and honours
 the contract, so a brand's parameterization has no default. Suggested wording
 for the step: "If _d_ is not a value of the type _t_, return ~none~."
 
-## D25 - A `var` binding does not take its type's default (2026-08-11)
-
-`#sec-defaultvalueof` answers "the value a binding or a field of the type _t_
-holds before it is assigned", and `#sec-declarations` draws no distinction among
-the declaration forms. A `var` gets neither the default nor, consequently, the
-refusal that follows it:
-
-```js
-var v: uint8;            // undefined
-let l: uint8;            // 0 (typed)
-var u: uint8 | string;   // declared, and holds undefined
-let w: uint8 | string;   // a type error - the type has no default
-```
-
-`Evaluate_VariableDeclaration` returns early when there is no initializer, so
-the annotation is never consulted. Fixing it is the same two lookups the `let`
-path performs, but it is a behaviour change of its own - every annotated `var`
-without an initializer starts holding a value where it held *undefined* - so it
-is filed rather than folded into the refusal work.
-
-Affected examples: none. The engine suite's typed-bindings tests pin both halves
-of the asymmetry and cite this entry.
-
 ## D26 - IsSubtype has no nominal arm (2026-08-12)
 
 `#sec-issubtype` states that "a ~nominal~ type is a subtype along its declared
@@ -624,3 +601,34 @@ mismatch cannot be produced from source at all, and the rule is observable only
 through `Reflect.isAssignable`.
 
 Affected examples: none.
+
+## D33 - A top-level `var` does not enforce its type on assignment (2026-08-13)
+
+`#sec-typed-bindings` checks an annotation "against its initializer and against
+every later assignment". A `var` declared at the TOP LEVEL takes its type's
+default and converts its initializer, and then accepts anything:
+
+```js
+var v: uint8 = 1;
+v = 2;              // an untyped 2
+let a: any = 300;
+v = a;              // ACCEPTED - v holds 300, which is not a uint8
+
+function f() { var v: uint8 = 1; let a: any = 300; v = a; }
+f();                // refused, correctly - a FUNCTION-SCOPED var enforces
+```
+
+The difference is where the binding lives. A function's `var` is in an ordinary
+declarative environment record, which carries the declared type the way every
+other binding does. A top-level `var` is a property of the global object -
+`Object.prototype.hasOwnProperty.call(globalThis, "v")` is *true* for one and
+*false* for the equivalent `let` - so there is no binding record to record a
+type on, and the recorder that serves every other declaration finds nothing.
+
+Closing it needs a place to keep the type that is not the binding: a side table
+keyed by the global object and the name is the obvious candidate, and whether
+that is worth its cost is the question the entry poses rather than answers.
+
+Affected examples: none. The engine suite pins both halves - the function-scoped
+case enforcing and the top-level case not - so the split is visible rather than
+assumed.
