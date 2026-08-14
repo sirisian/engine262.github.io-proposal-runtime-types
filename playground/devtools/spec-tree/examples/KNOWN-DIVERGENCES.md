@@ -28,7 +28,6 @@ this one is not.
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
 | D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
-| D11 | A variance declaration is not checked against its positions | engine | sec-variance-static-semantics-early-errors |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
@@ -61,42 +60,6 @@ Also worth knowing when reading the tree: the evaluation budget
 (`sec-evaluation-budget`) is host-configured through ManagedRealm and cannot
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
-
-## D11 - A variance declaration is not checked against its positions (2026-08-10, narrowed 2026-08-14)
-
-`#sec-type-parameters` admits a `VarianceModifier` and the engine parses it;
-`#sec-generic-variance`'s subtyping rule is applied, so `interface P<out T>` and
-`interface H<in T>` relate their instantiations correctly and an undeclared
-parameter stays invariant.
-
-What is missing is the rule that makes a declaration answerable for itself.
-`#sec-variance-static-semantics-early-errors` requires a covariant parameter to
-appear only in output positions - a method return or a `readonly` field - and a
-contravariant one only in input positions:
-
-```js
-interface Bad<out T> { value: T }     // accepted; spec: a Syntax Error, since a
-                                      // non-`readonly` field is ~both~ and only
-                                      // an invariant parameter may stand there
-interface Bad2<in T> { get(): T }     // accepted; spec: a Syntax Error
-```
-
-This is the half that inference cannot have. A structural type derives its
-variance from its members and so cannot be wrong about it; a declaration is a
-CLAIM, and without this rule a program may claim covariance for a parameter it
-then writes through - which is the unsoundness `#sec-isobjectsubtype` refuses
-structurally and this would readmit by declaration.
-
-The table to enforce is `#table-variance-positions`, whose rows are exhaustive:
-a method or function return and a `readonly` field are ~output~; a method,
-function or constructor parameter is ~input~; a non-`readonly` field is ~both~;
-and an argument to another type's parameter takes the enclosing polarity,
-inverted where that parameter is contravariant. That last row has a structural
-oracle - `type Nested<T> = { readonly get: () => InOnly.<T> }`, a producer of
-consumers, measures as contravariant in `T`.
-
-Affected examples: `sec-generic-variance` shows the invariance default and can
-show a declared parameter now; the early error wants an example once it exists.
 
 ## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
 
