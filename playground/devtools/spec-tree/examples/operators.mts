@@ -66,6 +66,13 @@ export const operators: ExampleChapter = [
   },
   {
     section: "sec-integer-operations",
+    title: "A shift counts in the type's own bits",
+    summary: "Each type has its family's operations at ITS width, so a shift on a 40-bit type moves 40 bits - not the 32 the untyped operator would - and a distance is taken modulo the width.",
+    code: "console.log((1 := uint.<40>) << (39 := uint.<40>));\nconsole.log((1099511627775 := uint.<40>) >>> (36 := uint.<40>));\nconsole.log((1 := uint.<33>) << (32 := uint.<33>));",
+    expected: "549755813888 (typed)\n15 (typed)\n4294967296 (typed)",
+  },
+  {
+    section: "sec-integer-operations",
     title: "Integer arithmetic wraps",
     summary: "Overflow, underflow, and signed overflow all wrap modulo 2^n - no promotion, no error.",
     code: "console.log((255 := uint8) + (1 := uint8), (0 := uint8) - (1 := uint8), (127 := int8) + (1 := int8));",

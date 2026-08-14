@@ -33,7 +33,6 @@ this one is not.
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
 | D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
-| D30 | Shift operators use 32-bit semantics above width 32 | engine | sec-integer-operations |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
 ## Deferred by the engine, tracked here for the same reason
@@ -353,38 +352,6 @@ covariance.
 
 While this is open, a conforming implementation without the store rule is
 unsound and the specification does not say so.
-
-## D30 - Shift operators use 32-bit semantics for widths 33 to 53 (2026-08-12, narrowed 2026-08-13)
-
-`#sec-integer-operations` gives each integer type the operations of its family
-at its own width. The shifts are performed with JavaScript's 32-bit semantics
-for one band of widths, and the boundary is exact:
-
-```js
-(1 := uint.<33>) << (32 := uint.<33>);   // 1            - want 2**32
-(1 := uint.<52>) << (32 := uint.<52>);   // 1            - want 2**32
-(1 := uint.<53>) << (32 := uint.<53>);   // 1            - want 2**32
-(1 := uint.<54>) << (32 := uint.<54>);   // 4294967296   - correct
-(1 := uint64) << (40 := uint64);         // 2**40        - correct
-(1 := uint32) << (31 := uint32);         // 2**31        - correct
-```
-
-53/54 is the BIGINT CARRIER's line. The wide-integer work made that path exact
-and the shift became exact with it; the widths from 33 to 53 are Number-backed -
-a double holds them exactly, so nothing there needed changing for exactness -
-and they kept the 32-bit shift they always had.
-
-Worth stating so this is not misread as the wide-integer work being unfinished:
-every value in this band is exactly representable in a double and nothing is
-lost to rounding. The shift is computed in the wrong NUMBER OF BITS, which is a
-different defect that was merely masked above 53.
-
-The fix is to compute a shift for a type of width _N_ at _N_ bits whatever the
-carrier - the distance modulo _N_, the result modulo 2**_N_ - rather than to
-widen the carrier, which would cost every operation in the band for no exactness
-gain.
-
-Affected examples: none.
 
 ## D31 - An alias-typed parameter receives no contextual type at a call (2026-08-12)
 
