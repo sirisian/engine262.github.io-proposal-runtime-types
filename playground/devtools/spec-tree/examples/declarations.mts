@@ -35,6 +35,14 @@ export const declarations: ExampleChapter = [
   },
   {
     section: "sec-typed-bindings",
+    title: "Every declaration form, and every route to the store",
+    summary: "The annotation governs the binding whichever form declares it - and a top-level `var` is a property of the global object, so the property carries the type and the two spellings of one store agree.",
+    code: "var v: uint8 = 1;\nv = 2;\nconsole.log(v, v is uint8);\nlet a: any = 300;\nglobalThis.v = a;",
+    throws: true,
+    expected: "2 (typed) true",
+  },
+  {
+    section: "sec-typed-bindings",
     title: "Every assignment is checked",
     summary: "The annotation governs the binding for its whole life - the bad assignment is refused before anything runs.",
     code: 'let a: uint8 = 5;\na = 7;\nconsole.log(a);\na = "x";',

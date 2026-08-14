@@ -32,7 +32,6 @@ this one is not.
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
-| D33 | A top-level `var` does not enforce its type on assignment | engine | sec-typed-bindings |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
 | D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
@@ -455,37 +454,6 @@ mismatch cannot be produced from source at all, and the rule is observable only
 through `Reflect.isAssignable`.
 
 Affected examples: none.
-
-## D33 - A top-level `var` does not enforce its type on assignment (2026-08-13)
-
-`#sec-typed-bindings` checks an annotation "against its initializer and against
-every later assignment". A `var` declared at the TOP LEVEL takes its type's
-default and converts its initializer, and then accepts anything:
-
-```js
-var v: uint8 = 1;
-v = 2;              // an untyped 2
-let a: any = 300;
-v = a;              // ACCEPTED - v holds 300, which is not a uint8
-
-function f() { var v: uint8 = 1; let a: any = 300; v = a; }
-f();                // refused, correctly - a FUNCTION-SCOPED var enforces
-```
-
-The difference is where the binding lives. A function's `var` is in an ordinary
-declarative environment record, which carries the declared type the way every
-other binding does. A top-level `var` is a property of the global object -
-`Object.prototype.hasOwnProperty.call(globalThis, "v")` is *true* for one and
-*false* for the equivalent `let` - so there is no binding record to record a
-type on, and the recorder that serves every other declaration finds nothing.
-
-Closing it needs a place to keep the type that is not the binding: a side table
-keyed by the global object and the name is the obvious candidate, and whether
-that is worth its cost is the question the entry poses rather than answers.
-
-Affected examples: none. The engine suite pins both halves - the function-scoped
-case enforcing and the top-level case not - so the split is visible rather than
-assumed.
 
 ## D34 - A boxed typed number loses its exact carrier (2026-08-13)
 
