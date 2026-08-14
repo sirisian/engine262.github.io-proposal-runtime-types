@@ -28,7 +28,7 @@ this one is not.
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
 | D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
-| D11 | Variance declarations are not parsed or applied | engine | sec-generic-variance |
+| D11 | A variance declaration is not checked against its positions | engine | sec-variance-static-semantics-early-errors |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
@@ -62,61 +62,41 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D11 - Variance declarations are not parsed or applied (2026-08-10, rescoped 2026-08-14)
+## D11 - A variance declaration is not checked against its positions (2026-08-10, narrowed 2026-08-14)
 
-`#sec-generic-variance` states what a variance declaration means and
-`#sec-type-parameters` now admits one: `TypeParameter` takes an optional
-`VarianceModifier`, `in` or `out`. The engine parses neither.
+`#sec-type-parameters` admits a `VarianceModifier` and the engine parses it;
+`#sec-generic-variance`'s subtyping rule is applied, so `interface P<out T>` and
+`interface H<in T>` relate their instantiations correctly and an undeclared
+parameter stays invariant.
 
-```js
-interface Producer<out T> { get(): T }   // SyntaxError
-```
-
-**The spec half is closed** - this entry was a spec gap and is now an engine
-one. What remains is to parse the modifier, record it on the parameter, apply
-it in `IsSubtype`'s nominal arm, and enforce the early error that
-`#sec-variance-static-semantics-early-errors` now states.
-
-WHY IT MATTERS, since the feature can look redundant: structural types already
-have full variance, INFERRED from position, and it is correct today -
+What is missing is the rule that makes a declaration answerable for itself.
+`#sec-variance-static-semantics-early-errors` requires a covariant parameter to
+appear only in output positions - a method return or a `readonly` field - and a
+contravariant one only in input positions:
 
 ```js
-type OutOnly<T> = { readonly get: () => T };
-type InOnly<T>  = { readonly put: (v: T) => void };
-type Both<T>    = { readonly get: () => T, readonly put: (v: T) => void };
-
-OutOnly.<uint8>         -> OutOnly.<uint8 | string>    // true
-InOnly.<uint8 | string> -> InOnly.<uint8>              // true
-Both.<uint8>            -> Both.<uint8 | string>       // false, both ways
+interface Bad<out T> { value: T }     // accepted; spec: a Syntax Error, since a
+                                      // non-`readonly` field is ~both~ and only
+                                      // an invariant parameter may stand there
+interface Bad2<in T> { get(): T }     // accepted; spec: a Syntax Error
 ```
 
-A NOMINAL type cannot express any of it:
+This is the half that inference cannot have. A structural type derives its
+variance from its members and so cannot be wrong about it; a declaration is a
+CLAIM, and without this rule a program may claim covariance for a parameter it
+then writes through - which is the unsoundness `#sec-isobjectsubtype` refuses
+structurally and this would readmit by declaration.
 
-```js
-interface Producer<T> { get(): T }
-Producer.<uint8> -> Producer.<uint8 | string>          // false
-```
+The table to enforce is `#table-variance-positions`, whose rows are exhaustive:
+a method or function return and a `readonly` field are ~output~; a method,
+function or constructor parameter is ~input~; a non-`readonly` field is ~both~;
+and an argument to another type's parameter takes the enclosing polarity,
+inverted where that parameter is contravariant. That last row has a structural
+oracle - `type Nested<T> = { readonly get: () => InOnly.<T> }`, a producer of
+consumers, measures as contravariant in `T`.
 
-- structurally identical to `OutOnly`, and refused because an interface names an
-identity rather than a shape. No rearrangement of the program reaches it.
-
-Those three structural forms are the ORACLES for the fix: a declared
-`interface P<out T>` must agree with `OutOnly` in both directions, `in` with
-`InOnly`, and an undeclared parameter with `Both`. The nested row has one too -
-`type Nested<T> = { readonly get: () => InOnly.<T> }`, a producer of consumers,
-measures as contravariant in `T`.
-
-Two open entries interfere with demonstrating this and are not this one's.
-**D26**: `Reflect.isAssignable(type Derived, type Base)` is *false* for
-`class Derived extends Base`, whatever the base's members, so the textbook
-`Producer.<Cat> -> Producer.<Animal>` cannot show covariance here even once the
-modifier parses - write the examples over `uint8` and `uint8 | string` instead.
-**D32**: a function-literal argument is unchecked, so a variance error is
-invisible at a call - assert through `Reflect.isAssignable` or a binding.
-
-Affected examples: `sec-generic-variance` demonstrates the invariance default,
-which is all that is expressible; it wants a declared covariant parameter and
-the early error once this closes.
+Affected examples: `sec-generic-variance` shows the invariance default and can
+show a declared parameter now; the early error wants an example once it exists.
 
 ## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
 

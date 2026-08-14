@@ -53,6 +53,13 @@ export const generics: ExampleChapter = [
   },
   {
     section: "sec-generic-variance",
+    title: "A declared parameter relates its instantiations",
+    summary: "`out` declares a parameter covariant and `in` contravariant, so two instantiations of one nominal declaration relate along that position - which structural types already did by inference and a nominal type could not express at all.",
+    code: "interface P<out T> { get(): T }\ninterface H<in T> { put(v: T): void }\ninterface B<T> { get(): T }\nconsole.log(Reflect.isAssignable(type P.<uint8>, type P.<uint8 | string>), Reflect.isAssignable(type P.<uint8 | string>, type P.<uint8>));\nconsole.log(Reflect.isAssignable(type H.<uint8 | string>, type H.<uint8>), Reflect.isAssignable(type H.<uint8>, type H.<uint8 | string>));\nconsole.log(Reflect.isAssignable(type B.<uint8>, type B.<uint8 | string>));",
+    expected: "true false\ntrue false\nfalse",
+  },
+  {
+    section: "sec-generic-variance",
     title: "Invariance is the default",
     summary: "With no variance declared, instantiations relate only to themselves - and the structural form agrees, since a writable member is invariant. The spec assigns declared variance a meaning but its grammar has no spelling for the declaration (KNOWN-DIVERGENCES.md D11).",
     code: "class Box<T> { constructor(v) { this.v = v; } }\nconsole.log(Reflect.isAssignable(type Box.<uint8>, type Box.<uint8>), Reflect.isAssignable(type Box.<uint8>, type Box.<uint16>));\ntype Narrow = { x: uint8 };\ntype Wide = { x: uint8 | string };\nconsole.log(Reflect.isAssignable(Narrow, Wide), Reflect.isAssignable(type { readonly x: uint8 }, type { readonly x: uint8 | string }));",
