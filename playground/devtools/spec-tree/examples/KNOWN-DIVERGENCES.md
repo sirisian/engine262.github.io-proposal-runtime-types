@@ -28,7 +28,7 @@ this one is not.
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
 | D34 | A boxed typed number loses its exact carrier | engine | sec-integer-types |
-| D11 | Variance declarations have semantics but no grammar | **spec** | sec-generic-variance |
+| D11 | Variance declarations are not parsed or applied | engine | sec-generic-variance |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D32 | A function literal argument is not checked against the parameter's type | engine | sec-check-insertion |
@@ -62,27 +62,61 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D11 - (spec) Variance declarations have semantics but no grammar (2026-08-10)
+## D11 - Variance declarations are not parsed or applied (2026-08-10, rescoped 2026-08-14)
 
-`#sec-generic-variance` states what a variance declaration means ("A type
-parameter may be declared covariant or contravariant, as it may in C# and
-Kotlin") and defines the polarity well-formedness rules, but the
-TypeParameter production of `#sec-type-parameters` is
-`BindingIdentifier TypeParameterConstraint? TypeParameterDefault?` - there is
-no spelling that declares the variance. 
+`#sec-generic-variance` states what a variance declaration means and
+`#sec-type-parameters` now admits one: `TypeParameter` takes an optional
+`VarianceModifier`, `in` or `out`. The engine parses neither.
+
 ```js
-interface Producer<out T> { get(): T; }
-// SyntaxError: Unexpected token - correctly so; no production admits it
+interface Producer<out T> { get(): T }   // SyntaxError
 ```
 
-The engine refusing `out T` / `in T` is consistent with the grammar as
-written; the gap is on the spec side. The sec-generic-variance example demonstrates the invariance default,
-which is expressible.
+**The spec half is closed** - this entry was a spec gap and is now an engine
+one. What remains is to parse the modifier, record it on the parameter, apply
+it in `IsSubtype`'s nominal arm, and enforce the early error that
+`#sec-variance-static-semantics-early-errors` now states.
 
-Note for D8 while it is open: the wrongful writable-depth covariance reaches
-structural generic applications too - `SBox.<uint8>` is accepted where
-`SBox.<uint8 | string>` is required for `type SBox<T> = { value: T }` -
-so nominal generics are the reliable way to demonstrate invariance.
+WHY IT MATTERS, since the feature can look redundant: structural types already
+have full variance, INFERRED from position, and it is correct today -
+
+```js
+type OutOnly<T> = { readonly get: () => T };
+type InOnly<T>  = { readonly put: (v: T) => void };
+type Both<T>    = { readonly get: () => T, readonly put: (v: T) => void };
+
+OutOnly.<uint8>         -> OutOnly.<uint8 | string>    // true
+InOnly.<uint8 | string> -> InOnly.<uint8>              // true
+Both.<uint8>            -> Both.<uint8 | string>       // false, both ways
+```
+
+A NOMINAL type cannot express any of it:
+
+```js
+interface Producer<T> { get(): T }
+Producer.<uint8> -> Producer.<uint8 | string>          // false
+```
+
+- structurally identical to `OutOnly`, and refused because an interface names an
+identity rather than a shape. No rearrangement of the program reaches it.
+
+Those three structural forms are the ORACLES for the fix: a declared
+`interface P<out T>` must agree with `OutOnly` in both directions, `in` with
+`InOnly`, and an undeclared parameter with `Both`. The nested row has one too -
+`type Nested<T> = { readonly get: () => InOnly.<T> }`, a producer of consumers,
+measures as contravariant in `T`.
+
+Two open entries interfere with demonstrating this and are not this one's.
+**D26**: `Reflect.isAssignable(type Derived, type Base)` is *false* for
+`class Derived extends Base`, whatever the base's members, so the textbook
+`Producer.<Cat> -> Producer.<Animal>` cannot show covariance here even once the
+modifier parses - write the examples over `uint8` and `uint8 | string` instead.
+**D32**: a function-literal argument is unchecked, so a variance error is
+invisible at a call - assert through `Reflect.isAssignable` or a binding.
+
+Affected examples: `sec-generic-variance` demonstrates the invariance default,
+which is all that is expressible; it wants a declared covariant parameter and
+the early error once this closes.
 
 ## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
 
