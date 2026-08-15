@@ -54,33 +54,46 @@ Also worth knowing when reading the tree: the evaluation budget
 be exercised from the playground at all, so its example demonstrates that
 ordinary programs are unaffected and says so in its summary.
 
-## D13 - The replacement pipeline cannot execute end to end (2026-08-10)
+## D13 - A replacement decorator applies again at run time (2026-08-10, rediagnosed 2026-08-14)
 
-`#sec-expansion` and `#sec-applyreplacementdecorator`. Two stacked failures,
-found evaluating what the engine's own expansion tests only compile. First,
-expansion does not consume the replacement-decorator invocation: the expanded module still contains `@a ...` even when the macro
-replaced the decorated tokens entirely. Second, evaluating that leftover
-reads the preprocessor import's binding, which was created but never
-initialized, and the engine dies on a HOST assertion (GetBindingValue:
-`S === Value.true`) rather than raising any guest error:
+`#sec-expansion` consumes a replacement-decorator invocation, and
+`#sec-applyreplacementdecorator` runs the macro once, at expansion. In this host
+the decoration survives into the evaluated module and applies a SECOND time as
+an ordinary class decorator, whose return replaces the class:
 
 ```js
-defineModule("macros.js", 'export function id(t) { return t; }');
+defineModule("macros.js", 'export function keep(t) { return t; }');
 defineModule("main.js",
-  'import { id } from "macros.js" with { preprocessor: "true" };\n@id class C {}');
-import("main.js");   // AssertError: S === Value.true (host crash)
+  'import { keep } from "macros.js" with { preprocessor: "true" };\n'
+  + '@keep class C { x = 1; }\nglobalThis.built = new C().x;');
+await import("main.js");        // TypeError: [object Object] is not a constructor
+                                // typeof C is 'object' - the macro's return
+                                // replaced the class
 ```
 
-The crash is the same when the macro removes the class outright, so the
-leftover decorator is the trigger. decorators/expansion.test.mts masks the
-first failure by slicing its output at the first `class` and never
-evaluating. Because playing such an example would kill the playground
-worker, the six pipeline sections (replacement-decorators,
-replacementdecoratornames, expansion, when-expansion-happens,
-applyreplacementdecorator, syntax-replacement) demonstrate their machinery
-on the working substrate instead and cite this entry; loading a
-preprocessor module without applying its macros works and is what
-sec-preprocessor-modules ships.
+**The entry previously said something else, and both halves were wrong.** It
+recorded that expansion leaves `@a` in the expanded source and that evaluating
+the leftover reads the preprocessor import's uninitialized binding, killing the
+host on `GetBindingValue: S === Value.true`.
+
+The host crash was real and is fixed, but it was not this feature's: the binding
+read was `C`, the class, and `class C {}` alone in a module - no preprocessor, no
+decorator - crashed the same way. `Evaluate_ClassDeclaration` resolved the
+class's own name without saying the read was strict. That is fixed separately,
+and with it gone the pipeline reaches the guest error above.
+
+Whether expansion consumes the decorator depends on the host resolving the
+macro: supplying `HostResolveReplacementDecorator` directly, the expanded source
+is clean and carries no `@keep`. Through the module loader the decoration
+survives - so the next step is why the hook does not resolve a macro imported by
+a preprocessor import, which is a narrower question than the entry posed.
+
+Affected examples: the six pipeline sections - `replacement-decorators`,
+`replacementdecoratornames`, `expansion`, `when-expansion-happens`,
+`applyreplacementdecorator`, `syntax-replacement` - demonstrate on the working
+substrate and cite this entry. They can be restored once a macro applies once.
+Playing such an example no longer kills the worker, which was the reason they
+could not be attempted.
 
 ## D17 - Declared narrowing, `this` adoption, and a method's expected `this` (2026-08-10, rescoped 2026-08-13)
 
