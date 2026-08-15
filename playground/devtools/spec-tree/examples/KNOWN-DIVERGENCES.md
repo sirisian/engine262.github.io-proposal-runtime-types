@@ -28,7 +28,6 @@ this one is not.
 | # | Summary | Side | Affected examples |
 | --- | --- | --- | --- |
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
-| D31 | An alias-typed parameter receives no contextual type at a call | engine | sec-literal-propagation |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
 | D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
@@ -352,38 +351,4 @@ covariance.
 
 While this is open, a conforming implementation without the store rule is
 unsound and the specification does not say so.
-
-## D31 - An alias-typed parameter receives no contextual type at a call (2026-08-12)
-
-`#sec-literal-propagation`: a literal takes the type its position requires, and
-a parameter is such a position. Where the parameter's annotation is written
-INLINE this holds; where it names an alias, no contextual type reaches the
-argument at all, so every rule that depends on one is skipped and the error
-falls through to the run-time boundary:
-
-```js
-function inline(p: uint8) {}
-inline(300);          // TypeError at CHECK time: "a literal type of number is
-                      // not assignable to uint.<8>"
-
-type U = uint8;
-function alias(p: U) {}
-alias(300);           // RangeError at RUN time, from inside `alias`
-
-type E = { x: uint8 };
-function obj(p: E) {}
-obj({ x: 1, extra: 9 });   // accepted - #sec-literal-freshness never runs,
-                           // where the inline spelling refuses it
-```
-
-The same alias in a BINDING is unaffected - `let bad: E = { x: 1, extra: 2 }` is
-refused - so this is the argument position specifically.
-
-Found while implementing literal freshness, which is the rule whose absence
-made it visible: the freshness refusal fires for an inline parameter type and
-not for an alias naming the same type. The engine's suite pins both, so the
-divergence is recorded at the site that will close it.
-
-Affected examples: none. The `sec-literal-freshness` example uses a binding and
-an inline parameter type.
 

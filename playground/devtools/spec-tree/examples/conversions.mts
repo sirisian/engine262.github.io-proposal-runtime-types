@@ -37,6 +37,14 @@ export const conversions: ExampleChapter = [
   },
   {
     section: "sec-literal-propagation",
+    title: "However the position spells its type",
+    summary: "A literal takes the type its position requires, and a parameter is such a position - so an annotation naming an alias is refused before anything runs, exactly as the same type written inline is.",
+    code: "type U = uint8;\nfunction f(p: U) { return p; }\nf(300);",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-literal-propagation",
     title: "A literal type accepts its one value",
     code: "type Level = 5;\nlet x: Level = 5;\nconsole.log(x, x instanceof Level);",
     expected: "5 true",
