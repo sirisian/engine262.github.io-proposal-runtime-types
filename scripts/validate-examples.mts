@@ -55,69 +55,9 @@ async function runExample(example: Pick<SpecExample, "code" | "mode" | "features
     // preprocessor modules validate the same way they play.
     const virtualModuleSourceCache = new Map<string, string>();
     agent.hostDefinedOptions.hostHooks ??= {};
-    // proposal-runtime-types #sec-preprocessor-modules: "A preprocessor module
-    // is fetched and evaluated before the importing module is parsed", and
-    // fetching is HOST business - which is why the engine asks through a hook
-    // and treats *undefined* as "this host has no preprocessor modules", leaving
-    // the decoration to parse as an ordinary one.
-    //
-    // A host that defines modules but not this hook gets the worst of both: the
-    // decoration survives expansion and then applies at RUN TIME as an ordinary
-    // class decorator, so the macro's return replaces the class. That is what
-    // KNOWN-DIVERGENCES.md D13 records, and it is a gap in the HOST rather than
-    // in the engine.
-    //
-    // The name is keyed by what the import BINDS, so the importing module's own
-    // preprocessor imports are scanned for it and the module they name is
-    // evaluated. Its exports are the macros.
-    const preprocessorExports = new Map<string, unknown>();
-    agent.hostDefinedOptions.hostHooks.HostResolveReplacementDecorator = (
-      name: string,
-      specifier: string | undefined,
-    ) => {
-      const key = `${specifier ?? ''}\u0000${name}`;
-      if (preprocessorExports.has(key)) {
-        return preprocessorExports.get(key) as never;
-      }
-      const importing = specifier === undefined ? undefined : virtualModuleSourceCache.get(specifier);
-      if (importing === undefined) {
-        return undefined;
-      }
-      // Which preprocessor import binds this name, and from where.
-      const pattern = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']\s*with\s*\{([^}]*)\}/g;
-      for (const match of importing.matchAll(pattern)) {
-        const [, bindings, from, attributes] = match;
-        if (!/preprocessor\s*:\s*["']true["']/.test(attributes)) {
-          continue;
-        }
-        const bound = bindings.split(',').map((b) => {
-          const parts = b.split(/\s+as\s+/).map((x) => x.trim());
-          return { exported: parts[0], local: parts[parts.length - 1] };
-        });
-        const entry = bound.find((b) => b.local === name);
-        if (!entry) {
-          continue;
-        }
-        const macroSource = virtualModuleSourceCache.get(from);
-        if (macroSource === undefined) {
-          return undefined;
-        }
-        // Evaluated as a SCRIPT that yields the export: a preprocessor module is
-        // evaluated before anything is running, and this host's macros are small
-        // enough that the export can be read by evaluating the source with the
-        // export stripped and the function named.
-        const asScript = macroSource.replace(/export\s+/g, '');
-        const pop2 = realm.pushTopContext();
-        const completion = realm.evaluateScriptSkipDebugger(
-          `${asScript}\n;${entry.exported};`,
-        ) as { Type: string, Value?: unknown };
-        pop2?.();
-        const resolved = completion.Type === 'normal' ? completion.Value : undefined;
-        preprocessorExports.set(key, resolved);
-        return resolved as never;
-      }
-      return undefined;
-    };
+    // A preprocessor module needs nothing from this host beyond the loader
+    // below: the engine loads it like any other module and reads the macro from
+    // its exports.
     agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([
       createBuiltinModuleLoader({
         loadBuiltinModule: (moduleRequest: { Specifier: string }, _realm: unknown, callback: (r: unknown) => void) => {

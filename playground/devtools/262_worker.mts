@@ -79,65 +79,10 @@ function recreateAgent(features: string[], signal: AbortSignal) {
       },
     });
     agent.hostDefinedOptions.hostHooks ??= {};
-    // proposal-runtime-types sec-preprocessor-modules: "A preprocessor module is
-    // fetched and evaluated before the importing module is parsed", and fetching
-    // is HOST business - the engine asks through this hook and reads *undefined*
-    // as "this host has no preprocessor modules", leaving the decoration to
-    // parse as an ordinary one.
-    //
-    // Defining modules without answering this is the worst of both: the
-    // decoration survives expansion and applies at RUN TIME as an ordinary class
-    // decorator, so a macro's return replaces the class it decorated.
-    //
-    // The name is keyed by what the import BINDS, so the importing module's own
-    // preprocessor imports are scanned for it and the module they name is
-    // evaluated; its exports are the macros.
-    const preprocessorExports = new Map<string, ObjectValue | undefined>();
-    agent.hostDefinedOptions.hostHooks.HostResolveReplacementDecorator = (name, specifier) => {
-      const key = `${specifier ?? ""}\u0000${name}`;
-      if (preprocessorExports.has(key)) {
-        return preprocessorExports.get(key);
-      }
-      const importing = specifier === undefined ? undefined : virtualModuleSourceCache.get(specifier);
-      if (importing === undefined) {
-        return undefined;
-      }
-      const pattern = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']\s*with\s*\{([^}]*)\}/g;
-      for (const match of importing.matchAll(pattern)) {
-        const [, bindings, from, attributes] = match;
-        if (!/preprocessor\s*:\s*["']true["']/.test(attributes)) {
-          continue;
-        }
-        const bound = bindings.split(",").map((b) => {
-          const parts = b.split(/\s+as\s+/).map((x) => x.trim());
-          return { exported: parts[0], local: parts[parts.length - 1] };
-        });
-        const entry = bound.find((b) => b.local === name);
-        if (!entry) {
-          continue;
-        }
-        const macroSource = virtualModuleSourceCache.get(from);
-        if (macroSource === undefined) {
-          return undefined;
-        }
-        const asScript = macroSource.replace(/export\s+/g, "");
-        const pop2 = realm.pushTopContext();
-        const completion = realm.evaluateScriptSkipDebugger(`${asScript}\n;${entry.exported};`);
-        pop2?.();
-        // A ValueCompletion is `Value | NormalCompletion | ThrowCompletion`, so
-        // a normal result may be the bare value and there is no `.Type` to read
-        // in that case. A macro that threw resolves to nothing, which the engine
-        // reads as "this host has no such decorator" and leaves the decoration
-        // alone - the same answer as a missing module.
-        const resolved = completion instanceof ThrowCompletion
-          ? undefined
-          : (completion instanceof NormalCompletion ? completion.Value : completion);
-        const asObject = resolved instanceof ObjectValue ? resolved : undefined;
-        preprocessorExports.set(key, asObject);
-        return asObject;
-      }
-      return undefined;
-    };
+    // A preprocessor module needs nothing from this host beyond the loader
+    // below. The engine loads it through HostLoadImportedModule like any other
+    // module and reads the macro out of its exports, so the name-keyed registry
+    // that used to be required here is gone with the hook that asked for it.
     agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([builtinLoader]);
     const pop = realm.pushTopContext();
     const defineModule = CreateBuiltinFunction(
