@@ -23,6 +23,7 @@ import {
   createBuiltinModuleLoader,
   ModuleCache,
   ThrowCompletion,
+  NormalCompletion,
 } from "@engine262/engine262";
 import { Inspector, createConsole } from "@engine262/engine262/inspector";
 
@@ -62,11 +63,15 @@ function recreateAgent(features: string[], signal: AbortSignal) {
   signal.addEventListener("abort", () => inspector.detachAgent(agent), { once: true });
 
   if (features.includes("virtual-module-loader")) {
-    const virtualModuleSourceCache = new Map();
+    const virtualModuleSourceCache = new Map<string, string>();
     const builtinLoader = createBuiltinModuleLoader({
       loadBuiltinModule: (moduleRequest, realm, callback) => {
-        if (virtualModuleSourceCache.has(moduleRequest.Specifier)) {
-          const source = virtualModuleSourceCache.get(moduleRequest.Specifier);
+        // One lookup rather than `has` then `get`: the pair reads as safe and
+        // leaves the value typed `string | undefined`, which is what it is - a
+        // Map can be mutated between the two calls, and the callback wants a
+        // source rather than possibly nothing.
+        const source = virtualModuleSourceCache.get(moduleRequest.Specifier);
+        if (source !== undefined) {
           callback(source);
           return;
         }
@@ -87,7 +92,7 @@ function recreateAgent(features: string[], signal: AbortSignal) {
     // The name is keyed by what the import BINDS, so the importing module's own
     // preprocessor imports are scanned for it and the module they name is
     // evaluated; its exports are the macros.
-    const preprocessorExports = new Map();
+    const preprocessorExports = new Map<string, ObjectValue | undefined>();
     agent.hostDefinedOptions.hostHooks.HostResolveReplacementDecorator = (name, specifier) => {
       const key = `${specifier ?? ""}\u0000${name}`;
       if (preprocessorExports.has(key)) {
@@ -119,9 +124,17 @@ function recreateAgent(features: string[], signal: AbortSignal) {
         const pop2 = realm.pushTopContext();
         const completion = realm.evaluateScriptSkipDebugger(`${asScript}\n;${entry.exported};`);
         pop2?.();
-        const resolved = completion.Type === "normal" ? completion.Value : undefined;
-        preprocessorExports.set(key, resolved);
-        return resolved;
+        // A ValueCompletion is `Value | NormalCompletion | ThrowCompletion`, so
+        // a normal result may be the bare value and there is no `.Type` to read
+        // in that case. A macro that threw resolves to nothing, which the engine
+        // reads as "this host has no such decorator" and leaves the decoration
+        // alone - the same answer as a missing module.
+        const resolved = completion instanceof ThrowCompletion
+          ? undefined
+          : (completion instanceof NormalCompletion ? completion.Value : completion);
+        const asObject = resolved instanceof ObjectValue ? resolved : undefined;
+        preprocessorExports.set(key, asObject);
+        return asObject;
       }
       return undefined;
     };
