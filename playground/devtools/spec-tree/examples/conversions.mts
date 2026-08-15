@@ -80,6 +80,14 @@ export const conversions: ExampleChapter = [
   },
   {
     section: "sec-primitiveconvert",
+    title: "A string's sources are those with a canonical text",
+    summary: "The rule for `string` divides its sources by whether the source HAS a canonical text rather than by whether it is a primitive - a number, a BigInt and a Boolean each have exactly one text that denotes them, while undefined, null, an object and a Symbol have only a diagnostic one and are refused.",
+    code: "function g() { return 5; }\nlet s: string = g();\nconsole.log(s);\nfunction h() { return {}; }\nlet t: string = h();",
+    throws: true,
+    expected: "'5'",
+  },
+  {
+    section: "sec-primitiveconvert",
     title: "string() and boolean() convert",
     summary: "The ordinary primitives convert by ToString and ToBoolean when called as conversions.",
     code: "console.log(string(42), boolean(0), boolean(3));",

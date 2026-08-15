@@ -30,7 +30,6 @@ this one is not.
 | D13 | Replacement pipeline cannot execute end to end | engine | six sec-decorators pipeline sections |
 | D17 | Declared narrowing, this-adoption and a method's expected this | engine | sec-declarative-checker-facts |
 | D26 | IsSubtype has no nominal arm | engine | sec-issubtype |
-| D27 | A boundary converts a numeric to a String implicitly | engine | sec-the-conversion-rule |
 | D29 | (spec) Tuple covariance is stated without a store rule | **spec** | sec-issubtype |
 | D22 | (spec) DefaultValueOf's parameterized step can return a non-member | **spec** | sec-defaultvalueof |
 
@@ -294,33 +293,6 @@ subclass may stand in for its base gets the wrong answer.
 
 Affected examples: none - the tree has no example of nominal subtyping. Add one
 to `sec-issubtype` when this closes.
-
-## D27 - A boundary converts a numeric to a String implicitly (2026-08-12)
-
-`#sec-the-conversion-rule`: a primitive type is assignable only to itself and
-`any`, and `string(x)` is the explicit spelling for the conversion. At a
-run-time boundary the conversion happens anyway:
-
-```js
-let boxed: any = (1 := uint8);
-let s: string = boxed;              // '1' - a String; spec: a type error
-let a: [].<string> = ["x"];
-let loose: any = a;
-loose[0] = (1 := uint8);            // a[0] is '1'
-type T = [uint8, string];
-let t: T = [1, "s"];
-t[1] = (1 := uint8);                // t[1] is '1'
-```
-
-The checker refuses the same assignment where the type is known -
-`let s: string = (1 := uint8);` is an early error - so this is the run-time half
-of the rule disagreeing with the static half. `RequireType` reaches
-`CheckedConvertValue`, whose primitive branch applies the explicit conversion,
-and every boundary that calls it inherits the behaviour: a binding, an array
-element store, a tuple position store, and a field.
-
-Affected examples: none. The engine suite pins the tuple and array forms and
-cites this entry.
 
 ## D29 - (spec) Tuple covariance is stated without a store rule (2026-08-12)
 
