@@ -74,6 +74,57 @@ function recreateAgent(features: string[], signal: AbortSignal) {
       },
     });
     agent.hostDefinedOptions.hostHooks ??= {};
+    // proposal-runtime-types sec-preprocessor-modules: "A preprocessor module is
+    // fetched and evaluated before the importing module is parsed", and fetching
+    // is HOST business - the engine asks through this hook and reads *undefined*
+    // as "this host has no preprocessor modules", leaving the decoration to
+    // parse as an ordinary one.
+    //
+    // Defining modules without answering this is the worst of both: the
+    // decoration survives expansion and applies at RUN TIME as an ordinary class
+    // decorator, so a macro's return replaces the class it decorated.
+    //
+    // The name is keyed by what the import BINDS, so the importing module's own
+    // preprocessor imports are scanned for it and the module they name is
+    // evaluated; its exports are the macros.
+    const preprocessorExports = new Map();
+    agent.hostDefinedOptions.hostHooks.HostResolveReplacementDecorator = (name, specifier) => {
+      const key = `${specifier ?? ""}\u0000${name}`;
+      if (preprocessorExports.has(key)) {
+        return preprocessorExports.get(key);
+      }
+      const importing = specifier === undefined ? undefined : virtualModuleSourceCache.get(specifier);
+      if (importing === undefined) {
+        return undefined;
+      }
+      const pattern = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']\s*with\s*\{([^}]*)\}/g;
+      for (const match of importing.matchAll(pattern)) {
+        const [, bindings, from, attributes] = match;
+        if (!/preprocessor\s*:\s*["']true["']/.test(attributes)) {
+          continue;
+        }
+        const bound = bindings.split(",").map((b) => {
+          const parts = b.split(/\s+as\s+/).map((x) => x.trim());
+          return { exported: parts[0], local: parts[parts.length - 1] };
+        });
+        const entry = bound.find((b) => b.local === name);
+        if (!entry) {
+          continue;
+        }
+        const macroSource = virtualModuleSourceCache.get(from);
+        if (macroSource === undefined) {
+          return undefined;
+        }
+        const asScript = macroSource.replace(/export\s+/g, "");
+        const pop2 = realm.pushTopContext();
+        const completion = realm.evaluateScriptSkipDebugger(`${asScript}\n;${entry.exported};`);
+        pop2?.();
+        const resolved = completion.Type === "normal" ? completion.Value : undefined;
+        preprocessorExports.set(key, resolved);
+        return resolved;
+      }
+      return undefined;
+    };
     agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([builtinLoader]);
     const pop = realm.pushTopContext();
     const defineModule = CreateBuiltinFunction(

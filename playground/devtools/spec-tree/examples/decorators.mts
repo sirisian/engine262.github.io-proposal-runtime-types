@@ -88,10 +88,11 @@ export const decorators: ExampleChapter = [
   },
   {
     section: "sec-applyreplacementdecorator",
-    title: "The factory form",
-    summary: "@m(arg) calls m with the argument first; the function it returns is the replacement (pipeline: D13).",
-    code: 'function pad(n) { return tokens => tokens; }\nconst input = [{ kind: "identifier", value: "x", span: undefined, tokens: undefined }];\nconsole.log(typeof pad(2), pad(2)(input).length);',
-    expected: "'function' 1",
+    title: "The macro runs once, at expansion",
+    summary: "The macro runs at expansion, once, and what it returns replaces the tokens it decorated - so the class the module evaluates is the one the macro produced.",
+    features: ["virtual-module-loader"],
+    code: 'defineModule("macros.js", \'export function keep(t) { return t; }\');\ndefineModule("main.js", \'import { keep } from "macros.js" with { preprocessor: "true" };\\n@keep class C { x = 41; }\\nglobalThis.out = new C().x + 1;\');\nimport("main.js").then(() => console.log("expanded and ran:", globalThis.out));',
+    expected: "'expanded and ran:' 42",
   },
   {
     section: "sec-syntax-replacement",
