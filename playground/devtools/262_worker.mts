@@ -75,7 +75,11 @@ function recreateAgent(features: string[], signal: AbortSignal) {
           callback(source);
           return;
         }
-        callback(ThrowCompletion(Value(`No virtual module found for specifier ${moduleRequest.Specifier}`)));
+        // A real Error rather than a thrown STRING: DevTools renders an
+        // exception's description, and a string primitive has none - so a miss
+        // reported this way printed `Uncaught` with nothing after it. `Throw`
+        // builds the error the engine would raise itself.
+        callback(Throw.Error(`No virtual module found for specifier ${moduleRequest.Specifier}. Define one with defineModule(${JSON.stringify(moduleRequest.Specifier)}, source).`) as never);
       },
     });
     agent.hostDefinedOptions.hostHooks ??= {};

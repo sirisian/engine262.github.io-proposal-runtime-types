@@ -64,7 +64,9 @@ async function runExample(example: Pick<SpecExample, "code" | "mode" | "features
             callback(virtualModuleSourceCache.get(moduleRequest.Specifier));
             return;
           }
-          callback(ThrowCompletion(Value(`No virtual module found for specifier ${moduleRequest.Specifier}`)));
+          // A real Error rather than a thrown STRING, which has no description
+          // for DevTools to render - mirrors the worker.
+          callback(Throw.Error(`No virtual module found for specifier ${moduleRequest.Specifier}. Define one with defineModule(${JSON.stringify(moduleRequest.Specifier)}, source).`) as never);
         },
     });
     // Mirrors the worker: a snippet named `jsx.js` imported as `"./jsx.js"`.
