@@ -20,12 +20,6 @@ export function initFeatureSettings() {
           url: "",
           enableInPlayground: true,
         },
-        {
-          flag: "virtual-module-loader",
-          name: L.engine262.includeVirtualModuleLoader,
-          url: "",
-          enableInPlayground: false,
-        },
       ] as Engine262Feature[]) {
         const featureSetting = Common.Settings.Settings.instance().createSetting(
           `engine262:${feature.flag}`,

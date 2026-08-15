@@ -62,7 +62,15 @@ function recreateAgent(features: string[], signal: AbortSignal) {
   inspector.attachAgent(agent, [realm]);
   signal.addEventListener("abort", () => inspector.detachAgent(agent), { once: true });
 
-  if (features.includes("virtual-module-loader")) {
+  // ALWAYS, not behind a flag. Without a module loader every import in the
+  // console fails with "Host does not set a module loader", and the console
+  // accepts static imports now - a preprocessor macro cannot be imported any
+  // other way, expansion running before evaluation.
+  //
+  // Defaulting the flag on would not have been enough: Common.Settings persists
+  // it, so anyone who had already opened the devtools would keep the stored
+  // *false* and keep the broken console.
+  {
     const virtualModuleSourceCache = new Map<string, string>();
     const builtinLoader = createBuiltinModuleLoader({
       loadBuiltinModule: (moduleRequest, realm, callback) => {

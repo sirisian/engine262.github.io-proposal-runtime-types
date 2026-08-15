@@ -10,7 +10,6 @@ export const L = {
     title: ": A JavaScript engine written in JavaScript for development and exploration",
     featureSwitch: "Feature: {name}",
     includeTest262Env: "Include test262 harness",
-    includeVirtualModuleLoader: "Include playground module loader (defineModule)",
     evaluateAs: "Evaluate as ",
     console: "Console",
     script: "Script",
