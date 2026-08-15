@@ -58,8 +58,7 @@ async function runExample(example: Pick<SpecExample, "code" | "mode" | "features
     // A preprocessor module needs nothing from this host beyond the loader
     // below: the engine loads it like any other module and reads the macro from
     // its exports.
-    agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([
-      createBuiltinModuleLoader({
+    const builtinLoader = createBuiltinModuleLoader({
         loadBuiltinModule: (moduleRequest: { Specifier: string }, _realm: unknown, callback: (r: unknown) => void) => {
           if (virtualModuleSourceCache.has(moduleRequest.Specifier)) {
             callback(virtualModuleSourceCache.get(moduleRequest.Specifier));
@@ -67,8 +66,22 @@ async function runExample(example: Pick<SpecExample, "code" | "mode" | "features
           }
           callback(ThrowCompletion(Value(`No virtual module found for specifier ${moduleRequest.Specifier}`)));
         },
-      }),
-    ]);
+    });
+    // Mirrors the worker: a snippet named `jsx.js` imported as `"./jsx.js"`.
+    // `createBuiltinModuleLoader` declines a relative specifier by contract, so
+    // the request is normalised and DELEGATED rather than loaded here, keeping
+    // one compilation path. The two spellings behave alike rather than naming
+    // one module - this host records a module per referrer either way.
+    const snippetLoader: typeof builtinLoader = (referrer, moduleRequest, hostDefined, finish, suggestError) => {
+      const asked = moduleRequest.Specifier;
+      const stripped = asked.replace(/^\.\//, '');
+      if (stripped !== asked && virtualModuleSourceCache.has(stripped)) {
+        builtinLoader(referrer, { ...moduleRequest, Specifier: stripped }, hostDefined, finish, suggestError);
+        return;
+      }
+      finish(undefined);
+    };
+    agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([snippetLoader, builtinLoader]);
     const pop = realm.pushTopContext();
     const defineModule = CreateBuiltinFunction(
       function* defineModule([specifier, source]: [unknown, unknown]) {

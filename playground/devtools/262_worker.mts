@@ -83,7 +83,32 @@ function recreateAgent(features: string[], signal: AbortSignal) {
     // below. The engine loads it through HostLoadImportedModule like any other
     // module and reads the macro out of its exports, so the name-keyed registry
     // that used to be required here is gone with the hook that asked for it.
-    agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([builtinLoader]);
+    // A snippet is named `jsx.js` and imported as `"./jsx.js"`, which is how
+    // anyone writes a local import - a bare specifier means a package
+    // elsewhere. `createBuiltinModuleLoader` declines a relative specifier by
+    // contract, its own comment saying that a name starting with "." is not a
+    // builtin module, so the request never reached the snippet cache and the
+    // loader chain answered `Cannot load module ./jsx.js`.
+    //
+    // Resolved by NORMALISING and delegating rather than by loading here, so the
+    // builtin loader keeps meaning what it says and there is one compilation
+    // path rather than two. A specifier that is not a known snippet falls
+    // through untouched.
+    //
+    // The two spellings behave ALIKE rather than naming one module: measured,
+    // this host gives a separate module record per referrer whichever spelling
+    // is used, so `"./jsx.js"` matches what `"jsx.js"` already did and nothing
+    // about identity changes.
+    const snippetLoader: typeof builtinLoader = (referrer, moduleRequest, hostDefined, finish, suggestError) => {
+      const asked = moduleRequest.Specifier;
+      const stripped = asked.replace(/^\.\//, "");
+      if (stripped !== asked && virtualModuleSourceCache.has(stripped)) {
+        builtinLoader(referrer, { ...moduleRequest, Specifier: stripped }, hostDefined, finish, suggestError);
+        return;
+      }
+      finish(undefined);
+    };
+    agent.hostDefinedOptions.hostHooks.HostLoadImportedModule = composeModuleLoaders([snippetLoader, builtinLoader]);
     const pop = realm.pushTopContext();
     const defineModule = CreateBuiltinFunction(
       function* defineModule([specifier, source]) {
