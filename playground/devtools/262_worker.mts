@@ -28,6 +28,20 @@ import {
 import { Inspector, createConsole } from "@engine262/engine262/inspector";
 
 let abortController = new AbortController();
+/**
+ * The frontend's snippets, by name. Kept at module scope rather than inside an
+ * agent so they survive `recreateAgent` - a feature toggle rebuilds the VM, and
+ * a snippet the user wrote is not the VM's to forget.
+ */
+const snippetSources = new Map<string, string>();
+let installSnippets: ((sources: ReadonlyMap<string, string>) => void) | undefined;
+function setSnippetModules(snippets: { name: string, content: string }[]) {
+  snippetSources.clear();
+  for (const { name, content } of snippets) {
+    snippetSources.set(name, content);
+  }
+  installSnippets?.(snippetSources);
+}
 class WorkerInspector extends Inspector {
   send(data: any) {
     postMessage(data);
@@ -36,6 +50,16 @@ class WorkerInspector extends Inspector {
     super();
     addEventListener("message", (e) => {
       const { id, method, params } = JSON.parse(e.data);
+      // A devtools SNIPPET is a file in the frontend, not a module in the VM -
+      // nothing connected the two, so `create a snippet named jsx.js` and then
+      // `import ... from "jsx.js"` reported that no such module existed. The
+      // frontend sends its snippets here and they become modules, which is what
+      // the documented workflow has always claimed happens.
+      if (method === "Debugger.engine262_setSnippets") {
+        setSnippetModules(params.snippets ?? []);
+        this.send({ id, result: {} });
+        return;
+      }
       if (method === "Debugger.engine262_setFeatures") {
         abortController.abort();
         abortController = new AbortController();
@@ -71,7 +95,14 @@ function recreateAgent(features: string[], signal: AbortSignal) {
   // it, so anyone who had already opened the devtools would keep the stored
   // *false* and keep the broken console.
   {
-    const virtualModuleSourceCache = new Map<string, string>();
+    const virtualModuleSourceCache = new Map<string, string>(snippetSources);
+    // Later edits reach this agent's cache too, so editing a snippet and
+    // re-running an import does not need a reload.
+    installSnippets = (sources) => {
+      for (const [name, content] of sources) {
+        virtualModuleSourceCache.set(name, content);
+      }
+    };
     const builtinLoader = createBuiltinModuleLoader({
       loadBuiltinModule: (moduleRequest, realm, callback) => {
         // One lookup rather than `has` then `get`: the pair reads as safe and
