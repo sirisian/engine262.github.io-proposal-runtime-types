@@ -98,10 +98,23 @@ function recreateAgent(features: string[], signal: AbortSignal) {
     const virtualModuleSourceCache = new Map<string, string>(snippetSources);
     // Later edits reach this agent's cache too, so editing a snippet and
     // re-running an import does not need a reload.
+    //
+    // Updating the SOURCE map is not enough on its own. The realm's
+    // resolverCache holds the COMPILED module for a specifier and is consulted
+    // before the loader is, so once a snippet has been imported the loader is
+    // never asked again and every later import serves the first compilation -
+    // for the life of the realm. Editing `jsx.js` and re-running then appears
+    // to do nothing, which is indistinguishable from the edit not having been
+    // saved.
+    //
+    // Forgetting the compiled modules is what makes the edit take. Records
+    // already linked against them keep working; only the next import
+    // recompiles.
     installSnippets = (sources) => {
       for (const [name, content] of sources) {
         virtualModuleSourceCache.set(name, content);
       }
+      realm.HostDefined.resolverCache?.clear();
     };
     const builtinLoader = createBuiltinModuleLoader({
       loadBuiltinModule: (moduleRequest, realm, callback) => {
