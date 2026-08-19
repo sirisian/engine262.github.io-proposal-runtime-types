@@ -104,6 +104,22 @@ export const foundations: ExampleChapter = [
     expected: "true false",
   },
   {
+    section: "sec-issubtype",
+    title: "A tuple is covariant, and the store is what makes that sound",
+    summary: "The arity window lets a narrower tuple stand where a wider one is wanted, which is what makes the covariance useful for reading. The same object is reached through both, so a store is checked against the type the VALUE carries for that position rather than the one the wider view gives it.",
+    code: "type TupN = [uint8];\ntype TupW = [uint8 | string];\nlet narrow: TupN = [1];\nlet wide: TupW = narrow;\nconsole.log(Reflect.isAssignable(TupN, TupW), String(wide[0]));\nwide[0] = \"a string\";",
+    throws: true,
+    expected: "true '1'",
+  },
+  {
+    section: "sec-array-defaults-and-stores",
+    title: "A tuple's positions and its arity are both its type",
+    summary: "Each position takes its own type, a position beyond the arity is not a position at all, and a method that would move a value between positions of different types is refused - the copying forms carry the shape the operation produced instead.",
+    code: "let t: [uint8, string] = [1, \"s\"];\nconst r = t.toReversed();\nr[0] = \"now first\";\nconsole.log(r[0], String(r[1]), t.length);\nt.reverse();",
+    throws: true,
+    expected: "'now first' '1' 2",
+  },
+  {
     section: "sec-isassignable",
     title: "Numeric types do not convert implicitly",
     summary: "A primitive type is assignable only to itself and any, so this is a checker error.",

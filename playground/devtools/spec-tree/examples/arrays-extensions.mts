@@ -30,10 +30,10 @@ export const arraysAndExtensions: ExampleChapter = [
   {
     section: "sec-array-defaults-and-stores",
     title: "A hole is not a shortening",
-    summary: "Deleting a typed element throws, and a tuple position is one - a delete leaves the length alone and puts a hole where a declared type says a value is, while `pop` removes an element and leaves a shorter array, which is why only one of them is refused.",
-    code: "type T = [uint8, string];\nlet t: T = [1, \"s\"];\nconsole.log(t.pop());\ndelete t[0];",
+    summary: "Deleting a typed element throws, and a tuple position is one - a delete leaves the length alone and puts a hole where a declared type says a value is. Popping a tuple is refused too, for the other reason: the arity is part of the type, so a two-position tuple with one left is not of its type. A dynamic array's length is not part of its type, so it pops.",
+    code: "let a: [].<uint8> = [1, 2];\nconsole.log(String(a.pop()));\ntype T = [uint8, string];\nlet t: T = [1, \"s\"];\ndelete t[0];",
     throws: true,
-    expected: "'s'",
+    expected: "'2'",
   },
   {
     section: "sec-array-defaults-and-stores",
