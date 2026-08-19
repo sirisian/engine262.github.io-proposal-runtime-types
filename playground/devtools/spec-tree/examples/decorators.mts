@@ -6,9 +6,10 @@ import type { ExampleChapter } from "./types.mts";
  * pipeline, reflection shapes, retrieval, and the metadata channel. All
  * outputs verified by scripts/validate-examples.mts against the built
  * engine. The replacement pipeline runs end to end, macros included:
- * a returned array is re-parsed, so a macro may rebuild a record and have
- * the rebuilt one take effect. One section still demonstrates on a
- * substitute (KNOWN-DIVERGENCES.md D13).
+ * a returned array is re-parsed, so a macro may rebuild a record - nested
+ * ones included - and have the rebuilt one take effect. What a replacement
+ * may not do is change the CONSTRUCT it replaces (KNOWN-DIVERGENCES.md
+ * D13).
  */
 export const decorators: ExampleChapter = [
   {
@@ -101,9 +102,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-syntax-replacement",
     title: "The tokens are the text",
-    summary: "A statement's tokens joined by value read back as the source they replace (pipeline: D13).",
-    code: 'let values = "";\nfunction g(c) { values = c.block[0].tokens.map(t => t.value).join(" "); }\n@g { let x = 1; }\nconsole.log(values);',
-    expected: "'let x = 1 ;'",
+    summary: "The tokens ARE the text: a macro rebuilds the brace token with a different inner stream, and the class that evaluates has the member the replacement spells rather than the one the source did. Nesting is what makes this reach a member at all - a class arrives as `class`, its name, and one brace token carrying `.tokens`.",
+    features: ["virtual-module-loader"],
+    code: 'defineModule("macros.js", \'export function rename(t) { const b = t[t.length - 1]; const inner = b.tokens.map(k => k.value === "before" ? { kind: k.kind, value: "after", span: k.span, tokens: k.tokens } : k); return t.slice(0, t.length - 1).concat([{ kind: b.kind, value: b.value, span: b.span, tokens: inner }]); }\');\ndefineModule("main.js", \'import { rename } from "macros.js" with { preprocessor: "true" };\\n@rename class C { before = 5; }\\nglobalThis.out = Object.keys(new C()).join(",") + "," + String(new C().after);\');\nimport("main.js").then(() => console.log(globalThis.out));',
+    expected: "'after,5'",
   },
   {
     section: "sec-decorator-contexts",
