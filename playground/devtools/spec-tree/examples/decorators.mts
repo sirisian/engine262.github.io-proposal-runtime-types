@@ -5,12 +5,10 @@ import type { ExampleChapter } from "./types.mts";
  * runtime decorators and their contexts, token streams, the replacement
  * pipeline, reflection shapes, retrieval, and the metadata channel. All
  * outputs verified by scripts/validate-examples.mts against the built
- * engine. The replacement pipeline runs end to end; three sections still
- * demonstrate on a hand-run substrate (KNOWN-DIVERGENCES.md D13) because
- * what they show - an outer macro observing the inner unexpanded, the
- * tokens-to-tokens contract, a statement's tokens read back - needs token
- * SYNTHESIS, and a macro's returned array is re-parsed from the records it
- * was given rather than from objects shaped like them.
+ * engine. The replacement pipeline runs end to end, macros included:
+ * a returned array is re-parsed, so a macro may rebuild a record and have
+ * the rebuilt one take effect. One section still demonstrates on a
+ * substitute (KNOWN-DIVERGENCES.md D13).
  */
 export const decorators: ExampleChapter = [
   {
@@ -63,9 +61,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-replacement-decorators",
     title: "The macro contract",
-    summary: "A replacement decorator is tokens to tokens; here the contract runs by hand (the pipeline itself is D13).",
-    code: 'function mark(tokens) {\n  return tokens.concat([{ kind: "identifier", value: "marked", span: tokens[0].span, tokens: undefined }]);\n}\nconst input = [{ kind: "identifier", value: "x", span: undefined, tokens: undefined }];\nconsole.log(mark(input).map(t => t.value).join(" "));',
-    expected: "'x marked'",
+    summary: "A replacement decorator is tokens to tokens: it receives the records of what it decorates and returns records, and what the module evaluates is what came back. The macro here rebuilds the class's name token, so the declaration that runs is one nothing in the source spells.",
+    features: ["virtual-module-loader"],
+    code: 'defineModule("macros.js", \'export function rename(t) { return t.map((k, i) => i === 1 ? { kind: k.kind, value: "Renamed", span: k.span, tokens: k.tokens } : k); }\');\ndefineModule("main.js", \'import { rename } from "macros.js" with { preprocessor: "true" };\\n@rename class Original { v = 7; }\\nglobalThis.out = typeof Original + "," + String(new Renamed().v);\');\nimport("main.js").then(() => console.log(globalThis.out));',
+    expected: "'undefined,7'",
   },
   {
     section: "sec-static-semantics-replacementdecoratornames",
@@ -78,9 +77,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-expansion",
     title: "Outer first",
-    summary: "An outer decoration receives the inner ones unexpanded; run by hand, the outer mark lands first (pipeline: D13).",
-    code: 'const tok = v => ({ kind: "identifier", value: v, span: undefined, tokens: undefined });\nconst mark = m => t => t.concat([tok(m)]);\nconsole.log(mark("B")(mark("A")([tok("class")])).map(t => t.value).join(" "));',
-    expected: "'class A B'",
+    summary: "The outer decoration expands first and receives the inner one UNEXPANDED - `@inner` is still a token in what `@outer` is handed. What it saw has to be encoded into the tokens it returns, since a macro that reports through a side channel is refused as impure; here the class's name records the answer.",
+    features: ["virtual-module-loader"],
+    code: 'defineModule("macros.js", \'export function inner(t) { return t; }\\nexport function outer(t) { const saw = t.some(k => k.value === "inner"); return t.map(k => k.value === "C" ? { kind: k.kind, value: saw ? "SawInner" : "SawNothing", span: k.span, tokens: k.tokens } : k); }\');\ndefineModule("main.js", \'import { inner, outer } from "macros.js" with { preprocessor: "true" };\\n@outer @inner class C { }\\nglobalThis.out = typeof SawInner + "," + typeof SawNothing;\');\nimport("main.js").then(() => console.log(globalThis.out));',
+    expected: "'function,undefined'",
   },
   {
     section: "sec-when-expansion-happens",
