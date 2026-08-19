@@ -5,9 +5,12 @@ import type { ExampleChapter } from "./types.mts";
  * runtime decorators and their contexts, token streams, the replacement
  * pipeline, reflection shapes, retrieval, and the metadata channel. All
  * outputs verified by scripts/validate-examples.mts against the built
- * engine. The replacement pipeline cannot yet execute end to end
- * (KNOWN-DIVERGENCES.md D13), so those sections demonstrate their
- * machinery on the working substrate and cite the entry.
+ * engine. The replacement pipeline runs end to end; three sections still
+ * demonstrate on a hand-run substrate (KNOWN-DIVERGENCES.md D13) because
+ * what they show - an outer macro observing the inner unexpanded, the
+ * tokens-to-tokens contract, a statement's tokens read back - needs token
+ * SYNTHESIS, and a macro's returned array is re-parsed from the records it
+ * was given rather than from objects shaped like them.
  */
 export const decorators: ExampleChapter = [
   {
@@ -52,10 +55,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-preprocessor-modules",
     title: "A module loaded for expansion",
-    summary: "The preprocessor attribute marks the import as compile-time; loading and running work (applying its macros does not yet: KNOWN-DIVERGENCES.md D13).",
+    summary: "A preprocessor module is fetched and evaluated before the importing module is parsed, so its exports are callable at expansion. The macro here removes the declaration it decorates, and the binding never comes into existence.",
     features: ["virtual-module-loader"],
-    code: 'defineModule("macros.js", \'export function id(t) { return t; }\');\ndefineModule("main.js", \'import "macros.js" with { preprocessor: "true" };\\nconsole.log("compiled and ran");\');\nimport("main.js");',
-    expected: "'compiled and ran'",
+    code: 'defineModule("macros.js", \'export function drop(t) { return []; }\\nexport function keep(t) { return t; }\');\ndefineModule("main.js", \'import { drop, keep } from "macros.js" with { preprocessor: "true" };\\n@keep class K { v = 1; }\\n@drop class Gone { w = 2; }\\nglobalThis.out = typeof K + "," + typeof Gone;\');\nimport("main.js").then(() => console.log(globalThis.out));',
+    expected: "'function,undefined'",
   },
   {
     section: "sec-replacement-decorators",
@@ -67,10 +70,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-static-semantics-replacementdecoratornames",
     title: "The names the import binds",
-    summary: "Only names imported with the preprocessor attribute expand; the binding set comes from the import (see D13 for applying them).",
+    summary: "The names an import BINDS are the names that expand. Here `a` is imported for the preprocessor and expands at compile; `b` is an ordinary function of the same shape and applies at run time instead, replacing its class with what it returns.",
     features: ["virtual-module-loader"],
-    code: 'defineModule("macros.js", \'export function a(t) { return t; }\\nexport function b(t) { return t; }\');\ndefineModule("main.js", \'import { a } from "macros.js" with { preprocessor: "true" };\\nconsole.log("names bound");\');\nimport("main.js");',
-    expected: "'names bound'",
+    code: 'defineModule("macros.js", \'export function a(t) { return t; }\');\ndefineModule("main.js", \'import { a } from "macros.js" with { preprocessor: "true" };\\nfunction b(v) { return v; }\\n@a class P { }\\n@b class Q { }\\nglobalThis.out = typeof P + "," + typeof Q;\');\nimport("main.js").then(() => console.log(globalThis.out));',
+    expected: "'function,object'",
   },
   {
     section: "sec-expansion",
@@ -82,9 +85,10 @@ export const decorators: ExampleChapter = [
   {
     section: "sec-when-expansion-happens",
     title: "Deterministic, so cacheable",
-    summary: "Expansion happens at compile and must be a pure function of the tokens - the same macro on the same input is the same output (pipeline: D13).",
-    code: 'const tok = v => ({ kind: "identifier", value: v, span: undefined, tokens: undefined });\nconst mark = m => t => t.concat([tok(m)]);\nconst input = [tok("class")];\nconsole.log(JSON.stringify(mark("Z")(input)) === JSON.stringify(mark("Z")(input)));',
-    expected: "true",
+    summary: "Expansion happens at compile, so a macro must be a pure function of its tokens - and the requirement is enforced rather than assumed: a macro that reaches outside them is refused as not compile-time evaluable, naming what it reached for.",
+    features: ["virtual-module-loader"],
+    code: 'defineModule("macros.js", \'export function impure(t) { globalThis.ran = true; return t; }\');\ndefineModule("main.js", \'import { impure } from "macros.js" with { preprocessor: "true" };\\n@impure class C { }\');\nimport("main.js").then(() => console.log("accepted"), e => console.log(e.constructor.name, String(e.message).includes("compile-time evaluable")));',
+    expected: "'SyntaxError' true",
   },
   {
     section: "sec-applyreplacementdecorator",
