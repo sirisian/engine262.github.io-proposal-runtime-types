@@ -124,6 +124,38 @@ export const layoutAndMisc: ExampleChapter = [
     expected: "0 (typed) 4 (typed)",
   },
   {
+    section: "sec-toindextype",
+    title: "A count is checked, not coerced",
+    summary: "`length` and `capacity` READ at the index type, so an operation that ACCEPTS a count checks it rather than converting: if `a.reserve(\"4\")` were accepted, the operations that take a count would disagree with the ones that report one.",
+    code: "let a: [].<uint8> = [];\na.push((1 := uint8));\na.reserve(4);\nconsole.log(a.capacity);\na.reserve(\"4\");",
+    throws: true,
+    // The String is refused by the CHECKING PASS, so the log above it never
+    // runs: the whole source text is rejected rather than evaluated.
+    expected: "",
+  },
+  {
+    section: "sec-span-type",
+    title: "A span is a window on storage it does not own",
+    summary: "`Span.<T>` names a run of elements somewhere else - a buffer, a fixed array, a growable one - so writing through it writes to that storage rather than to a copy.",
+    code: "const b = new ArrayBuffer(8);\nconst s = Span.<uint8>(b, 0, 8, 1);\ns[0] = (5 := uint8);\nconsole.log(s.length, s[0], new Uint8Array(b)[0]);",
+    expected: "8 (typed) 5 (typed) 5",
+  },
+  {
+    section: "sec-span-coercion",
+    title: "Both array forms coerce to a window",
+    summary: "A fixed array and a growable one both become a `Span.<T>` at a parameter of that type, which is what lets a function take either without knowing which it was handed.",
+    code: "function width(p: Span.<uint8>) { return p.length; }\nlet fixed: [4].<uint8> = [1, 2, 3, 4];\nlet grown: [].<uint8> = [];\ngrown.push((9 := uint8));\nconsole.log(width(fixed), width(grown));",
+    expected: "4 (typed) 1 (typed)",
+  },
+  {
+    section: "sec-span-liveness",
+    title: "A window over a growable array is invalidated when it relocates",
+    summary: "The window is a reference, so it follows the reference rules: a `push` that outgrows the allocation relocates it and every window over it stops being readable. A window over a `[N].<T>` is never invalidated - a fixed extent has nothing that relocates.",
+    code: "function take(p: Span.<uint8>) { return p; }\nlet g: [].<uint8> = [];\ng.push((1 := uint8));\nconst w = take(g);\nconsole.log(w[0]);\nlet f: [4].<uint8> = [1, 2, 3, 4];\nconsole.log(take(f)[0]);\ng.push((2 := uint8));\ng.push((3 := uint8));\ng.push((4 := uint8));\ng.push((5 := uint8));\nconsole.log(w[0]);",
+    throws: true,
+    expected: "1 (typed)\n1 (typed)",
+  },
+  {
     section: "sec-array-views",
     title: "A view over existing bytes",
     summary: "A Span aliases a buffer rather than copying it - the write lands in the original bytes, which is what makes a view a view. Constructed as `Span.<T>(buffer, byteOffset, count, byteElementLength)`: the element length is explicit so a view over a packed layout does not have to be inferred from the element type.",
