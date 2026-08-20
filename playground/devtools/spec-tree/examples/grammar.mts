@@ -84,6 +84,28 @@ export const grammar: ExampleChapter = [
     expected: "2 (typed) 'x'",
   },
   {
+    section: "sec-variance-static-semantics-early-errors",
+    title: "A covariant parameter may not appear in an input position",
+    summary: "The modifier is a promise about where the parameter may be read and written, so the declaration itself is checked: `out T` in a method PARAMETER would let a caller write through a wider view, and that is refused where it is written rather than where it would bite.",
+    code: "interface P<out T> { put(v: T): void }",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-ordered-element-types",
+    title: "A tuple's positions are ordered and its arity is exact",
+    summary: "Each position has its own type, read in the order written, and the arity is part of the type - which is what a tuple has that an array of a union does not.",
+    code: "let t: [uint8, string] = [1, \"s\"];\nconsole.log(t.length, t[0], t[1]);\nconsole.log(Reflect.getReflection(type [uint8, string]).kind);",
+    expected: "2 1 (typed) 's'\n'tuple'",
+  },
+  {
+    section: "sec-array-literal-static-type",
+    title: "An array literal takes its type from its position",
+    summary: "With no contextual type the literal is an ordinary array; at a typed position it is the typed array the position wants, and the elements convert at the boundary rather than after it.",
+    code: "let plain = [1, 2, 3];\nconsole.log(Reflect.getReflection(Reflect.typeOf(plain)).kind);\nlet typed: [].<uint8> = [1, 2, 3];\nconsole.log(typed.length, typed[0]);",
+    expected: "'array'\n3 (typed) 1 (typed)",
+  },
+  {
     section: "sec-object-types",
     title: "An object type asks what a value has",
     summary: "The structural form is what lets a value satisfy an interface by having its members, and it is consulted BEFORE the step that separates the kinds - without it the rules would refuse `f({ a: 1 })`, since an interface is a nominal type and an object literal\'s type is object. A class instance has its members too, so it reaches an object-typed position without declaring anything.",
