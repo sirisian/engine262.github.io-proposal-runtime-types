@@ -105,6 +105,20 @@ export const foundations: ExampleChapter = [
   },
   {
     section: "sec-issubtype",
+    title: "Three ways to reach one interface, and one that is refused",
+    summary: "The steps for an interface run before the step that separates the kinds, and they read the source. An object type is compared by its members; a class is related only where its declaration says `implements`, walked up the base chain; and a class that promised nothing satisfies no interface however well it matches. Reflection answers exactly what the checker decides.",
+    code: "interface I { x: uint8 }\nclass Declared implements I { x: uint8 = 1; }\nclass Sub extends Declared { y: uint8 = 2; }\nclass Loose { x: uint8 = 1; }\nconsole.log(Reflect.isAssignable(type { x: uint8 }, type I), Reflect.isAssignable(type Declared, type I), Reflect.isAssignable(type Sub, type I), Reflect.isAssignable(type Loose, type I));",
+    expected: "true true true false",
+  },
+  {
+    section: "sec-issubtype",
+    title: "A class is a subtype of the class it extends",
+    summary: "Nominal, not structural: the chain is walked through [[Base]], so a subclass stands where its superclass is wanted and an unrelated class of the same shape does not. Two unrelated empty classes stay unrelated, which is the point of classes being nominal at all.",
+    code: "class Base { a: uint8 = 1; }\nclass Derived extends Base { b: uint8 = 2; }\nclass Same { a: uint8 = 1; }\nconsole.log(Reflect.isAssignable(type Derived, type Base), Reflect.isAssignable(type Base, type Derived), Reflect.isAssignable(type Same, type Base));",
+    expected: "true false false",
+  },
+  {
+    section: "sec-issubtype",
     title: "A tuple is covariant, and the store is what makes that sound",
     summary: "The arity window lets a narrower tuple stand where a wider one is wanted, which is what makes the covariance useful for reading. The same object is reached through both, so a store is checked against the type the VALUE carries for that position rather than the one the wider view gives it.",
     code: "type TupN = [uint8];\ntype TupW = [uint8 | string];\nlet narrow: TupN = [1];\nlet wide: TupW = narrow;\nconsole.log(Reflect.isAssignable(TupN, TupW), String(wide[0]));\nwide[0] = \"a string\";",

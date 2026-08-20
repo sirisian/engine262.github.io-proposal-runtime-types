@@ -85,6 +85,21 @@ export const grammar: ExampleChapter = [
   },
   {
     section: "sec-object-types",
+    title: "An object type asks what a value has",
+    summary: "The structural form is what lets a value satisfy an interface by having its members, and it is consulted BEFORE the step that separates the kinds - without it the rules would refuse `f({ a: 1 })`, since an interface is a nominal type and an object literal\'s type is object. A class instance has its members too, so it reaches an object-typed position without declaring anything.",
+    code: "interface IPoint { x: uint8 }\nclass Point { x: uint8 = 1; }\nfunction shape(p: { x: uint8 }) { return \"shape\"; }\nfunction contract(p: IPoint) { return \"contract\"; }\nlet o: { x: uint8 } = { x: (1 := uint8) };\nconsole.log(shape(new Point()), shape(o), contract(o));",
+    expected: "'shape' 'shape' 'contract'",
+  },
+  {
+    section: "sec-object-types",
+    title: "An interface asks what a class promised",
+    summary: "The other half of the same rule: an interface is nominal where a CLASS is related to it. `Point` has the members and never said so, and a class states a construction and an identity as well as a shape - it is the identity that its type is for. Saying `implements` is the whole of what it takes.",
+    code: "interface IPoint { x: uint8 }\nclass Declared implements IPoint { x: uint8 = 1; }\nclass Point { x: uint8 = 1; }\nfunction contract(p: IPoint) { return \"contract\"; }\nconsole.log(contract(new Declared()));\ncontract(new Point());",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-object-types",
     title: "readonly is covariant in depth",
     summary: "The flag reflects, and a readonly member accepts a subtype where a writable one would not - which is sound because a value read from it is never written through it.",
     code: "type Src = { readonly x: uint8 };\ntype RO = { readonly x: uint8 | string };\nconsole.log(Reflect.getReflection(Src).properties[0].readonly, Reflect.isAssignable(Src, RO));",
