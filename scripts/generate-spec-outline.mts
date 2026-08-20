@@ -66,7 +66,16 @@ function cleanTitle(rawHTML: string): string {
 function parseOutline(source: string): SpecSectionNode[] {
   const roots: SpecSectionNode[] = [];
   const stack: SpecSectionNode[] = [];
-  const tag = /<(\/?)emu-clause([^>]*)>/g;
+  // PLAN-example-coverage.md phase 5. ANNEXES too: the generator matched only
+  // <emu-clause>, so the specification's six annex sections were absent from the
+  // outline - which made them invisible to BOTH tools that read it. An example
+  // targeting one reported STALE ("section id not in generated outline") and
+  // scripts/check-coverage.mts never listed them as uncovered, so a gap of six
+  // sections looked like full coverage from either end.
+  //
+  // <emu-annex> nests the same way and carries the same id and <h1>, so one
+  // alternation is the whole change.
+  const tag = /<(\/?)emu-(?:clause|annex)([^>]*)>/g;
   let match: RegExpExecArray | null;
   while ((match = tag.exec(source)) !== null) {
     if (match[1] === "/") {

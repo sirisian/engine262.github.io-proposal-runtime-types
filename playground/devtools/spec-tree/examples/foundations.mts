@@ -227,4 +227,48 @@ export const foundations: ExampleChapter = [
     throws: true,
     expected: "",
   },
+  {
+    section: "annex-evaluable-fragment",
+    title: "A builder runs in the fragment, at check time",
+    summary: "The annex fixes the compile-time-evaluable subset as an implementation target of its own, so a tool that is not an ECMAScript engine can evaluate types and prove it agrees with one. What runs there is ordinary code - a function that builds a type and an alias that calls it.",
+    code: "function shape() {\n  return Reflect.makeType({ kind: \"object\", properties: [{ name: \"x\", type: type uint8 }] });\n}\ntype T = shape();\nlet v: T = { x: (1 := uint8) };\nconsole.log(v.x);",
+    expected: "1 (typed)",
+  },
+  {
+    section: "sec-fragment-grammar",
+    title: "The fragment is the grammar less a few forms",
+    summary: "Async and generator forms are among the exclusions, and the reason shows in what happens: an async builder answers a Promise, and a Promise is not a type. The exclusion is not a separate check so much as the shape of what a builder must return.",
+    code: "async function build() {\n  return Reflect.makeType({ kind: \"object\", properties: [] });\n}\ntype A = build();",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-fragment-library",
+    title: "Type Objects are interned, so they key a Map",
+    summary: "The library floor includes `Map` and `Set`, "
+      + "\"whose keys Type Objects serve as by interned identity\" - which is what makes a builder able to memoize on a type without inventing a key for it.",
+    code: "const seen = new Map();\nseen.set(uint8, \"eight\");\nconsole.log(seen.get(uint8), uint8 === uint8);",
+    expected: "'eight' true",
+  },
+  {
+    section: "sec-fragment-semantics",
+    title: "The fragment computes the same interned types",
+    summary: "Conformance is stated as producing, position for position, the same interned types this specification produces - so two builders that compute the same shape produce the SAME type, not two that match.",
+    code: "function a() { return Reflect.makeType({ kind: \"object\", properties: [{ name: \"x\", type: type uint8 }] }); }\nfunction b() { return Reflect.makeType({ kind: \"object\", properties: [{ name: \"x\", type: type uint8 }] }); }\ntype A = a();\ntype B = b();\nconsole.log(Reflect.isAssignable(A, B), Reflect.isAssignable(B, A));",
+    expected: "true true",
+  },
+  {
+    section: "annex-standard-kit",
+    title: "The kit is ordinary code over the primitives",
+    summary: "The primitives are normative - construction, relations, `never`, `keyof` - and the kit is roughly two hundred lines of evaluable code written over them, shipped as source so that nothing in it is engine magic. A `partial` written by hand here is the same thing the kit would give.",
+    code: "type User = { id: uint8, name: string };\nconsole.log(Reflect.getReflection(type keyof User).kind);\nfunction partial(t) {\n  const r = Reflect.getReflection(t);\n  return Reflect.makeType({ kind: \"object\", properties: r.properties.map((p) => ({ name: p.name, type: p.type, optional: true })) });\n}\ntype P = partial(User);\nlet v: P = {};\nconsole.log(Object.keys(v).length);",
+    expected: "'union'\n0",
+  },
+  {
+    section: "sec-fragment-conformance-suite",
+    title: "Identity is written `===`, which interning supplies",
+    summary: "The acceptance corpus pairs each erased-language solution with a builder solution, and its assertions include type identity written `===` - which interning gives directly and which an erased checker can only imitate. This is that assertion, in one line.",
+    code: "function box() { return Reflect.makeType({ kind: \"object\", properties: [{ name: \"v\", type: type uint8 }] }); }\ntype A = box();\ntype B = box();\nconsole.log(A === B, uint8 === uint8);",
+    expected: "true true",
+  },
 ];
