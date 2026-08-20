@@ -120,4 +120,26 @@ export const expressionsAndJson: ExampleChapter = [
     code: "interface I { x: uint8 }\nconsole.log(Composite.isComposite(JSON.parse.<Composite.<I>>('{\"x\":1}')));",
     expected: "true",
   },
+  {
+    section: "sec-constant-expressions",
+    title: "A block whose value belongs to its site",
+    summary: "`constant { … }` is an EXPRESSION, not a declaration: the block runs and its value is the expression's. `constant` is a contextual keyword, so a program already using it as an identifier keeps its meaning - and the `[no LineTerminator here]` restriction is what keeps `constant` alone on a line followed by a block from being two statements.",
+    code: "const v = constant { 40 + 2 };\nconsole.log(v);",
+    expected: "42",
+  },
+  {
+    section: "sec-runtime-semantics-constant-expression-evaluation",
+    title: "Evaluated at most once for a site in a realm",
+    summary: "Every later evaluation reaching the same ConstantExpression answers with the value already produced - the rule ECMA-262 applies to a tagged template's strings array, generalized from a frozen List of Strings to the value of a Block. Two calls through the same site get the SAME object, not two that match.",
+    code: "function f() { return constant { const o = { tag: \"built\" }; o }; }\nconst a = f();\nconst b = f();\nconsole.log(a === b, a.tag);",
+    expected: "true 'built'",
+  },
+  {
+    section: "sec-constant-expression-early-errors",
+    title: "A constant expression may not read from outside itself",
+    summary: "The value belongs to the site rather than to any evaluation of it, so it cannot depend on anything an evaluation brings - a free reference would make \"the value already produced\" mean the value produced for whichever evaluation happened to be first. Refused at parse, before the program runs.",
+    code: "let n = 0;\nfunction f() { return constant { n + 1 }; }\nconsole.log(f());",
+    throws: true,
+    expected: "",
+  },
 ];
