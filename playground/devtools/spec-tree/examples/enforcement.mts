@@ -59,10 +59,10 @@ export const enforcement: ExampleChapter = [
   },
   {
     section: "sec-check-insertion",
-    title: "A callback takes its parameter types from the position",
-    summary: "The literal's parameters come from the position it stands in, so a callback needs no annotations - and that is what its own type is built from, rather than being a substitute for checking it.",
-    code: "const a: [].<uint8> = [1, 2, 3];\nconsole.log(a.map((x) => x + (1 := uint8))[0]);\nconsole.log(a.filter((x) => x > (1 := uint8)).length);",
-    expected: "2 (typed)\n2",
+    title: "A callback takes its parameter types from the position, and the copy keeps them",
+    summary: "The literal's parameters come from the position it stands in, so a callback needs no annotations. The RESULT keeps the element type too - a method that copies from a typed array copies its type with it, which is what stops `filter` handing back something that accepts anything.",
+    code: "const a: [].<uint8> = [1, 2, 3];\nconsole.log(a.map((x) => x + (1 := uint8))[0]);\nconsole.log(a.filter((x) => x > (1 := uint8))[0]);\nconsole.log(Reflect.typeOf(a.filter((x) => x > (1 := uint8))[0]) === uint8);",
+    expected: "2 (typed)\n2 (typed)\ntrue",
   },
   {
     section: "sec-check-insertion",

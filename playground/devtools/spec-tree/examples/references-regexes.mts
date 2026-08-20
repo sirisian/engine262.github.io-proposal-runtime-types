@@ -87,7 +87,7 @@ export const referencesAndRegexes: ExampleChapter = [
     section: "sec-typed-regular-expressions",
     title: "The literal types its groups",
     summary: "The annotation states one required and one optional group, and the checker verifies the literal matches it.",
-    code: 'let r: RegExp.<[string, string | undefined], {}> = /(\\d+)(\\.\\d+)?/;\nconst m = r.exec("v3.5");\nconsole.log(m[1], m[2]);',
+    code: 'let r: RegExp.<[string, string | void], {}> = /(\\d+)(\\.\\d+)?/;\nconst m = r.exec("v3.5");\nconsole.log(m[1], m[2]);',
     expected: "'3' '.5'",
   },
 ];
