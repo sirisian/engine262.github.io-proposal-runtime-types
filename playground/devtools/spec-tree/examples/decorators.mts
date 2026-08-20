@@ -40,6 +40,20 @@ export const decorators: ExampleChapter = [
     expected: "'{ let x = 1; }'",
   },
   {
+    section: "sec-tokenstream.prototype.parse",
+    title: "A macro delegates the ranges that are ECMAScript",
+    summary: "`parse(start, end, goal)` takes SOURCE OFFSETS - read off a token\'s span, not token indices - and a goal of \"expression\" or \"statements\". This is what lets a replacement decorator define a syntax the implementation does not know: it reads whatever it likes and hands the ordinary parts back to the parser.",
+    code: "let out = \"\";\nfunction g(c) {\n  const t = c.block;\n  const s = t[0].span;\n  const r = t.parse(s.start + 1, s.end - 1, \"statements\");\n  out = r.length + \" tokens, first \" + r[0].kind;\n}\n@g { let x = 1; }\nconsole.log(out);",
+    expected: "'5 tokens, first identifier'",
+  },
+  {
+    section: "sec-captured-regions",
+    title: "A region carries its source with it",
+    summary: "The captured region is not a copy of the text: every token holds the span it came from, so a macro can ask where it was as well as what it is - which is what makes delegating a sub-range possible at all.",
+    code: "let out = \"\";\nfunction g(c) {\n  const s = c.block[0].span;\n  out = s.source.text + \" [\" + s.start + \",\" + s.end + \"]\";\n}\n@g { let x = 1; }\nconsole.log(out);",
+    expected: "'{ let x = 1; } [0,14]'",
+  },
+  {
     section: "sec-tokenstream.prototype.tostring",
     title: "Round trip to source",
     code: 'let t = "";\nfunction g(c) { t = c.condition.toString(); }\nif (1 < 2) @g { 1; }\nconsole.log(t);',
