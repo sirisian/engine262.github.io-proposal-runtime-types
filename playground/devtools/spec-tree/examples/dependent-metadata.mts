@@ -44,10 +44,10 @@ export const dependentAndMetadata: ExampleChapter = [
   },
   {
     section: "sec-primitive-metadata",
-    title: "A meta declaration reshapes a type",
-    summary: "The protocol lets a meta type supply the default a binding of uint8 holds.",
-    code: "meta uint8 { subtype(a, b) { return true; } default = 7; }\nlet x: uint8;\nconsole.log(x);",
-    expected: "7 (typed)",
+    title: "A meta declaration says what a value carries, not what a binding holds",
+    summary: "`default` is the UNCONSTRAINED CONSTRAINT - what a value carries where it has no field of this meta type - and not the zero of the type the declaration names. The two were conflated, so declaring a meta type over `uint8` redefined the zero of a primitive; a binding still takes its own type\'s default.",
+    code: "meta uint8 { subtype(a, b) { return true; } default = 7; }\nlet x: uint8;\nconsole.log(x);\nlet y: uint8.<7> = (7 := uint8.<7>);\nconsole.log(y);",
+    expected: "0 (typed)\n7 (typed)",
   },
   {
     section: "sec-meta-declarations",

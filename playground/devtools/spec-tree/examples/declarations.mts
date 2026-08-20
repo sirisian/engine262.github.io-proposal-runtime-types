@@ -75,8 +75,10 @@ export const declarations: ExampleChapter = [
     title: "A type with no zero must be initialized",
     summary: "The clause has a second half: where a type has no default, declaring a binding of it without an initializer is a type error, so the operation reports the absence rather than the binding holding a value of no type.",
     code: 'let ok: uint8 | null;\nconsole.log(ok);\nlet refused: uint8 | string;',
+    // The refusal is an EARLY ERROR now, so the log above it never runs: the
+    // whole source text is rejected rather than evaluated.
     throws: true,
-    expected: "null",
+    expected: "",
   },
   {
     section: "sec-defaultvalueof",
@@ -105,7 +107,9 @@ export const declarations: ExampleChapter = [
     summary: "The same rule read the other way. With no cast declared nothing crosses from an unconstrained value, so the parameterization has no default and its declaration needs an initializer - which is also how a class states that its zero-filled form is not meaningful, by holding a field of such a type.",
     code: "type Dim = { m: number };\nmeta Dim { default = { m: 0 }; subtype(a, b) { return a.m === b.m; } }\ntype Meter = float64.<{ m: 1 }>;\nconsole.log('declared');\nlet h: Meter;",
     throws: true,
-    expected: "'declared'",
+    // Nothing prints: the declaration below is refused before the source text
+    // runs, which is what an Early Error means.
+    expected: "",
   },
   {
     section: "sec-defaultvalueof",
@@ -113,7 +117,8 @@ export const declarations: ExampleChapter = [
     summary: "Where a meta type defines validate the crossing still runs it, so a bound that refuses the base's zero leaves the parameterization without one even though a cast is declared, and an out-of-range initializer is refused at the same boundary.",
     code: "type Bnd = { lo: number };\nmeta Bnd { default = { lo: -Infinity }; subtype(a, b) { return a.lo >= b.lo; } validate(v, c) { return Number(v) >= c.lo; } }\nprimitive float64 { operator float64.<{ lo: 0 }>(): float64.<{ lo: 0 }> { return this; } }\nprimitive float64 { operator float64.<{ lo: 1 }>(): float64.<{ lo: 1 }> { return this; } }\nlet ok: float64.<{ lo: 0 }>;\nconsole.log(Number(ok));\nlet refused: float64.<{ lo: 1 }>;",
     throws: true,
-    expected: "0",
+    // As above - the log never runs, because the refusal is a check-time one.
+    expected: "",
   },
   {
     section: "sec-typed-initializers-semantics",
