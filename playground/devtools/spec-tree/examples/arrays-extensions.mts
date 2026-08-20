@@ -86,4 +86,11 @@ export const arraysAndExtensions: ExampleChapter = [
     code: "function returnType(F) { return Reflect.getReflection(F).signatures[0].return.type; }\ntype F = () => string;\nconsole.log(returnType(F) === string);",
     expected: "true",
   },
+  {
+    section: "sec-relationship-to-typed-arrays",
+    title: "A typed array is an Array, not a %TypedArray%",
+    summary: "`[].<uint8>` is an ordinary Array whose elements carry a type, not a view onto a buffer - `Array.isArray` says yes and `ArrayBuffer.isView` says no. The two surfaces meet at `Span.<T>`, which is where a window over bytes lives.",
+    code: "let a: [].<uint8> = [];\na.push((1 := uint8));\nconsole.log(Array.isArray(a), ArrayBuffer.isView(a));",
+    expected: "true false",
+  },
 ];

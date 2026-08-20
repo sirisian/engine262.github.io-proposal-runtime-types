@@ -47,6 +47,13 @@ export const decorators: ExampleChapter = [
     expected: "'5 tokens, first identifier'",
   },
   {
+    section: "sec-scanbalancedrun",
+    title: "A captured region ends where its delimiters balance",
+    summary: "The region\'s extent is found by BALANCING delimiters rather than by parsing, because the contents may not be ECMAScript at all - so a nested brace or bracket inside it is part of the region and not the end of it. Here the inner object and array are both spanned, and the region ends at the brace that matches the first.",
+    code: "let out = \"\";\nfunction g(c) {\n  const s = c.block[0].span;\n  out = s.source.text + \" ends at \" + s.end;\n}\n@g { let a = { nested: [1, 2] }; }\nconsole.log(out);",
+    expected: "'{ let a = { nested: [1, 2] }; } ends at 31'",
+  },
+  {
     section: "sec-captured-regions",
     title: "A region carries its source with it",
     summary: "The captured region is not a copy of the text: every token holds the span it came from, so a macro can ask where it was as well as what it is - which is what makes delegating a sub-range possible at all.",

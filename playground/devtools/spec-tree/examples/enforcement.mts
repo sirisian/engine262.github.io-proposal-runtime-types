@@ -117,4 +117,11 @@ export const enforcement: ExampleChapter = [
     code: 'try { throw new RangeError("out of range"); }\ncatch (e: TypeError) { console.log("type error"); }\ncatch (e: RangeError) { console.log("caught:", e.message); }',
     expected: "'caught:' 'out of range'",
   },
+  {
+    section: "sec-elision-stability",
+    title: "A type survives being copied and passed",
+    summary: "Eliding a check must not change what a value IS: a binding copied from a typed one, and a value returned from a call, both still carry the type - which is what lets the checker drop a check it has already made rather than only defer it.",
+    code: "let a: uint8 = 5;\nlet b = a;\nconsole.log(Reflect.typeOf(b) === uint8);\nfunction id(v: uint8) { return v; }\nlet c = id((5 := uint8));\nconsole.log(Reflect.typeOf(c) === uint8);",
+    expected: "true\ntrue",
+  },
 ];
