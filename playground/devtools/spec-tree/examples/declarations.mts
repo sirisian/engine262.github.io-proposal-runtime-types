@@ -35,6 +35,21 @@ export const declarations: ExampleChapter = [
   },
   {
     section: "sec-typed-bindings",
+    title: "All three keywords take the type's default",
+    summary: "`var`, `let` and `const` accept the same annotations, and a binding declared with a type and no initializer is initialized to that type\'s default. The annotation is what makes the initializer redundant rather than absent - `const c: [4].<uint8>;` has already said what `c` holds.",
+    code: "var v: uint8;\nlet l: uint8;\nconst c: uint8;\nconsole.log(v, l, c);",
+    expected: "0 (typed) 0 (typed) 0 (typed)",
+  },
+  {
+    section: "sec-typed-bindings",
+    title: "const is a promise about the binding, not the value",
+    summary: "A defaulted `const` holds a mutable aggregate the same way `const a = []` does: the contents change, the binding does not. Rebinding it is still refused.",
+    code: "const a: [4].<uint8>;\na[0] = (7 := uint8);\nconsole.log(a.length, a[0]);\nconst b: uint8;\nb = (1 := uint8);",
+    throws: true,
+    expected: "4 (typed) 7 (typed)",
+  },
+  {
+    section: "sec-typed-bindings",
     title: "Every declaration form, and every route to the store",
     summary: "The annotation governs the binding whichever form declares it - and a top-level `var` is a property of the global object, so the property carries the type and the two spellings of one store agree.",
     code: "var v: uint8 = 1;\nv = 2;\nconsole.log(v, v is uint8);\nlet a: any = 300;\nglobalThis.v = a;",
