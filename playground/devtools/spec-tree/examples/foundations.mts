@@ -112,10 +112,10 @@ export const foundations: ExampleChapter = [
   },
   {
     section: "sec-selectunionmember",
-    title: "Selection is by membership, not by order",
-    summary: "The operation answers WHICH member a value belongs to, and the answer does not depend on the order the members were written: the same value selects the same member either way round.",
-    code: "function f(p: uint8 | string) { return typeof p; }\nfunction g(p: string | uint8) { return typeof p; }\nconsole.log(f((5 := uint8)), g((5 := uint8)));\nconsole.log(f(\"s\"), g(\"s\"));",
-    expected: "'number' 'number'\n'string' 'string'",
+    title: "Three rungs, in order",
+    summary: "The operation asks three questions and stops at the first yes: is the value ALREADY of a member, does a member represent it EXACTLY as a number, and does any member admit it AT ALL. The order is the substance - at `string | uint32` a Number would otherwise cross into `string` and the boundary would store \"42\", textifying a number a member of the same union represents exactly.",
+    code: "let already: uint8 | string = \"s\";\nconsole.log(typeof already);\nlet exact = {};\nexact.n = 42;\nlet picked: string | uint32 = exact.n;\nconsole.log(typeof picked);\nlet last = {};\nlast.b = true;\nlet admitted: uint8 | string = last.b;\nconsole.log(admitted, typeof admitted);",
+    expected: "'string'\n'number'\n'true' 'string'",
   },
   {
     section: "sec-falsy-and-truthy-parts",
