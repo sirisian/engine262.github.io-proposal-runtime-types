@@ -51,6 +51,21 @@ export const dependentAndMetadata: ExampleChapter = [
   },
   {
     section: "sec-meta-declarations",
+    title: "A meta declaration may be generic",
+    summary: "The production carries `TypeParameters?`, so a meta type may be parameterised over the type it constrains - which is what lets one bounds meta type serve every ordered value rather than only numbers. The parameter is in scope in the hooks\' annotations.",
+    code: "interface Ordered<T> { v: T; }\ntype NumberBounds<T: Ordered.<T>> = { nonZero?: boolean };\nmeta NumberBounds<T: Ordered.<T>> {\n  default = {};\n  subtype(sub: NumberBounds.<T>, sup: NumberBounds.<T>): boolean { return true; }\n}\nconsole.log(\"declared\");",
+    expected: "'declared'",
+  },
+  {
+    section: "sec-meta-declarations",
+    title: "A base-form meta type has no parameter to bind",
+    summary: "A meta declaration may name a PRIMITIVE instead of an object type, declaring a base form - and a primitive has nothing for a parameter to stand for. The grammar allows `TypeParameters?` after any name, so this is refused as an early error rather than by failing to parse.",
+    code: "meta uint8<T> { default = 0; subtype(a, b) { return true; } }",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-meta-declarations",
     title: "The required members are checked",
     summary: "A meta block must supply subtype and default; one with only validate is refused.",
     code: "meta uint8 { validate(v, c) { return true; } }",
