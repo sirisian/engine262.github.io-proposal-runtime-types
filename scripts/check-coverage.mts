@@ -21,6 +21,7 @@
  *   node scripts/check-coverage.mts --summary  # per-chapter counts, always exit 0
  */
 import { SPEC_OUTLINE, type SpecSection } from "../playground/devtools/generated/spec-outline.mts";
+import { warnIfOutlineIsStale } from "./outline-freshness.mts";
 import { ALL_EXAMPLES, EXAMPLES_BY_SECTION } from "../playground/devtools/spec-tree/examples/index.mts";
 
 interface Row {
@@ -40,6 +41,11 @@ const rows: Row[] = [];
 })(SPEC_OUTLINE, null);
 
 const sectionIds = new Set(rows.map((row) => row.id));
+
+// ISSUES I3/I7: the coverage number means nothing if the outline is not the
+// spec's shape - a section absent from the outline is a section this script
+// cannot report as uncovered, which is exactly how six annexes stayed missing.
+await warnIfOutlineIsStale(sectionIds);
 const uncovered = rows.filter((row) => row.examples === 0);
 const stale = ALL_EXAMPLES.filter((example) => !sectionIds.has(example.section));
 

@@ -36,6 +36,7 @@ const {
 const { createConsole } = await import(`${engineRoot}/inspector.mjs`);
 
 import { SPEC_OUTLINE, type SpecSection } from "../playground/devtools/generated/spec-outline.mts";
+import { warnIfOutlineIsStale } from "./outline-freshness.mts";
 import { ALL_EXAMPLES } from "../playground/devtools/spec-tree/examples/index.mts";
 import type { SpecExample } from "../playground/devtools/spec-tree/examples/types.mts";
 
@@ -152,6 +153,12 @@ const sectionIds = new Set<string>();
     if (node.children) collect(node.children);
   }
 })(SPEC_OUTLINE);
+
+// ISSUES I3/I7: say so when the outline no longer matches the spec beside it.
+// Every result below is judged against the outline, so a reader who sees STALE
+// or a coverage number needs to know whether the outline is the thing that is
+// wrong.
+await warnIfOutlineIsStale(sectionIds);
 
 const reportIndex = process.argv.indexOf("--report");
 const reportPath =
