@@ -57,6 +57,14 @@ export const classes: ExampleChapter = [
   },
   {
     section: "sec-abstract-classes",
+    title: "A method with no body is a contract its subclasses must keep",
+    summary: "A member is abstract because it has no body - the `abstract` keyword before it is optional and says the same thing earlier. That makes it an OBLIGATION rather than a hint: a class not declared `abstract` that leaves one unimplemented is a type error, and an EARLY one, so the source is rejected rather than evaluated. Nothing in the program runs, including the parts that would have worked.",
+    code: "abstract class Shape {\n  area(): float64;\n}\nclass Circle extends Shape {\n  area(): float64 { return 3.14; }\n}\nclass Square extends Shape { }",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-abstract-classes",
     title: "Abstract classes type their subclasses",
     code: "abstract class Shape { area(): float64 { return 0; } }\nclass Circle extends Shape {}\nconsole.log(new Circle() instanceof (type Shape));",
     expected: "true",
