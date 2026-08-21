@@ -51,10 +51,18 @@ export const dependentAndMetadata: ExampleChapter = [
   },
   {
     section: "sec-meta-declarations",
-    title: "A meta declaration may be generic",
-    summary: "The production carries `TypeParameters?`, so a meta type may be parameterised over the type it constrains - which is what lets one bounds meta type serve every ordered value rather than only numbers. The parameter is in scope in the hooks\' annotations.",
-    code: "interface Ordered<T> { v: T; }\ntype NumberBounds<T: Ordered.<T>> = { nonZero?: boolean };\nmeta NumberBounds<T: Ordered.<T>> {\n  default = {};\n  subtype(sub: NumberBounds.<T>, sup: NumberBounds.<T>): boolean { return true; }\n}\nconsole.log(\"declared\");",
-    expected: "'declared'",
+    title: "A meta declaration may be generic, and its hooks may name the parameter",
+    summary: "The parameter is not an ordinary generic one: it is bound to the BASE at each parameterization the meta type governs - `uint8.<{ nonZero: false }>` binds it to `uint8` because `uint8` is what is being parameterized. So one declaration serves every base, and a hook annotated with it is checked against the base actually being crossed.",
+    code: "interface Ordered<T> { operator<(other: T): boolean { return true; } }\ntype NumberBounds<T: Ordered.<T>> = { nonZero?: boolean };\nmeta NumberBounds<T: Ordered.<T>> {\n  default = { nonZero: false };\n  subtype(sub: NumberBounds.<T>, sup: NumberBounds.<T>): boolean {\n    return sup.nonZero === undefined || sub.nonZero === sup.nonZero;\n  }\n}\nlet p: uint8 = (5 := uint8);\nlet w: uint8.<{ nonZero: false }> = p;\nconsole.log(w);",
+    expected: "5 (typed)",
+  },
+  {
+    section: "sec-meta-declarations",
+    title: "The hook decides the crossing",
+    summary: "`subtype` is the meta type\'s half of the metadata subtype judgment, so a constraint it refuses is refused at the boundary. A value that may be zero cannot cross into a position requiring non-zero, and the hook is the only thing that decides it.",
+    code: "type NB<T> = { nonZero?: boolean };\nmeta NB<T> {\n  default = { nonZero: false };\n  subtype(sub: NB.<T>, sup: NB.<T>): boolean {\n    return sup.nonZero === undefined || sub.nonZero === sup.nonZero;\n  }\n}\nlet a: uint8.<{ nonZero: false }> = (1 := uint8.<{ nonZero: false }>);\nlet b: uint8.<{ nonZero: true }> = a;",
+    throws: true,
+    expected: "",
   },
   {
     section: "sec-meta-declarations",
