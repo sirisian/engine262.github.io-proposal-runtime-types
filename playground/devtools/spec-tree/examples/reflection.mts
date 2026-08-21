@@ -56,7 +56,7 @@ export const reflection: ExampleChapter = [
   {
     section: "sec-reflect-never",
     title: "The empty union has a name",
-    code: 'console.log(typeof Reflect.never, Reflect.makeType({ kind: "union", arms: [] }) === Reflect.never);',
+    code: 'console.log(typeof (type never), Reflect.makeType({ kind: "union", arms: [] }) === (type never));',
     expected: "'object' true",
   },
   {
