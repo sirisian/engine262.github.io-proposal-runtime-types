@@ -71,9 +71,9 @@ export const grammar: ExampleChapter = [
   },
   {
     section: "sec-keytypesof",
-    title: "An enum's keys live on typeof",
-    summary: "keyof typeof C is the member names; keyof C is the keys of the member values, which have none.",
-    code: 'enum C { Zero }\ntype K = keyof typeof C;\ntype V = keyof C;\nconsole.log("Zero" is K, "Zero" is V);',
+    title: "An enum's keys live on its type object",
+    summary: "keyof Reflect.typeOf(C) is the member names; keyof C is the keys of the member values, which have none.",
+    code: 'enum C { Zero }\ntype K = keyof Reflect.typeOf(C);\ntype V = keyof C;\nconsole.log("Zero" is K, "Zero" is V);',
     expected: "true false",
   },
   {
