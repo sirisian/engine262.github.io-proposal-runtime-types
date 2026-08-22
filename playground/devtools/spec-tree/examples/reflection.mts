@@ -54,8 +54,8 @@ export const reflection: ExampleChapter = [
     expected: "true true false",
   },
   {
-    section: "sec-reflect-never",
-    title: "The empty union has a name",
+    section: "sec-never-type",
+    title: "The empty union is reached through the general bridge",
     code: 'console.log(typeof (type never), Reflect.makeType({ kind: "union", arms: [] }) === (type never));',
     expected: "'object' true",
   },

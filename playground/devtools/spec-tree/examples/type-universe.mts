@@ -9,7 +9,8 @@ export const typeUniverse: ExampleChapter = [
   {
     section: "sec-type-universe",
     title: "The families are present",
-    code: "console.log(typeof uint8, typeof float128, typeof decimal128, typeof int16x8);",
+    summary: "The annotation is what makes the text ADMITTING. `#sec-type-names`: \"The operand of `typeof` is excepted from admitting only\", so a text that admits no type names answers `typeof uint8` as 'undefined' - which is what this example measured before the annotation was added.",
+    code: "let present: uint8 = 1;\nconsole.log(typeof uint8, typeof float128, typeof decimal128, typeof int16x8);",
     expected: "'object' 'object' 'object' 'object'",
   },
   {

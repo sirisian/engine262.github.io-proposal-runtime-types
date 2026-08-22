@@ -64,6 +64,20 @@ export const grammar: ExampleChapter = [
     expected: "true",
   },
   {
+    section: "sec-indexed-access-types",
+    title: "The type of a member, by name",
+    summary: "`C[\"host\"]` denotes the type IndexedTypeOf returns for C and the key, so a value of that member's type satisfies it and another does not.",
+    code: 'type C = { host: string, port: uint16 };\ntype H = C["host"];\nconsole.log("x" is H, 1 is H);',
+    expected: "true false",
+  },
+  {
+    section: "sec-indexedtypeof",
+    title: "A union of keys names a union of types",
+    summary: "IndexedTypeOf distributes over the keys, so `C[\"host\" | \"port\"]` is the union of both members' types and nothing else.",
+    code: 'type C = { host: string, port: uint16 };\ntype B = C["host" | "port"];\nconsole.log("x" is B, (80 := uint16) is B, true is B);',
+    expected: "true true false",
+  },
+  {
     section: "sec-keyof",
     title: "The keys of an object type",
     code: 'type A = { a: uint8, b: string };\ntype K = keyof A;\nconsole.log("a" is K, "b" is K, "c" is K);',
