@@ -40,7 +40,7 @@ export const grammar: ExampleChapter = [
     title: "Comparison survives next door",
     summary: "The goal symbol keeps .< for type arguments and < for less-than in the same program.",
     code: 'const pairs = new Map.<string, uint8>();\npairs.set("a", 1);\nconsole.log(pairs.size, pairs.get("a"), 3 < 5);',
-    expected: "1 1 (typed) true",
+    expected: "1 (typed) 1 (typed) true",
   },
   {
     section: "sec-type-expressions",
