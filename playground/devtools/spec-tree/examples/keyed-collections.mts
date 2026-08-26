@@ -98,6 +98,33 @@ export const keyedCollections: ExampleChapter = [
     expected: "true true",
   },
   {
+    section: "sec-collection-key-positions",
+    title: "A key is checked, not converted",
+    summary:
+      "A boundary converts, and a key is a store whose value is also an identity - so the string conversion does not reach it. Without this, a number key and the string of it were one entry where an untyped Map holds two.",
+    code:
+      'const m = new Map.<string, uint8>();\nconst n = (1 := any);\nm.set(n, 1);',
+    throws: true,
+  },
+  {
+    section: "sec-collection-key-positions",
+    title: "A value position still converts",
+    summary:
+      "The rule reaches identity-bearing positions only. A Map's value is an ordinary store and keeps the whole conversion rule, and an array's element is not identity-bearing either.",
+    code:
+      'const m = new Map.<uint8, string>();\nconst n = (1 := any);\nm.set(1, n);\nconst a: [].<string> = [];\na.push(n);\nconsole.log(m.get(1), a[0]);',
+    expected: "'1' '1'",
+  },
+  {
+    section: "sec-set-operation-probes",
+    title: "Unrelated element types intersect to nothing",
+    summary:
+      "A probe an operation performs is a question with a known answer, not a test a user wrote - so it reads as false, and the fold holds whichever operand is walked.",
+    code:
+      'const a = new Set.<uint8>([1]);\nconst b = new Set.<string>(["x"]);\nconsole.log(a.intersection(b).size, b.intersection(a).size);\nconsole.log(a.isDisjointFrom(b), b.isDisjointFrom(a));',
+    expected: "0 (typed) 0 (typed)\ntrue true",
+  },
+  {
     section: "sec-untyped-collections",
     title: "A collection with no type arguments is untouched",
     summary:
