@@ -143,6 +143,15 @@ export const keyedCollections: ExampleChapter = [
     expected: "1 true",
   },
   {
+    section: "sec-typed-standard-library-statics",
+    title: "A grouping static states how its types flow through",
+    summary:
+      "Map.groupBy takes its element type from the items and its key type from the callback, and types the callback's parameter on the way. An instance method is found through its receiver's type; a static has no typed receiver, so its signature is attached to the name.",
+    code:
+      'const scores: [].<uint32> = [1, 2, 1];\nconst grouped = Map.groupBy(scores, (n) => n > 1 ? "high" : "low");\nconsole.log(grouped.get("low").join(","), grouped.get("high").join(","));',
+    expected: "'1,1' '2'",
+  },
+  {
     section: "sec-getsetrecord-revised",
     title: "A count is checked rather than coerced",
     summary:
