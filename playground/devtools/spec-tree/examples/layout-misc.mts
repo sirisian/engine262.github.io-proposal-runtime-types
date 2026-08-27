@@ -9,6 +9,15 @@ import type { ExampleChapter } from "./types.mts";
  */
 export const layoutAndMisc: ExampleChapter = [
   {
+    section: "sec-value-type-copying",
+    title: "Assigning a value type class copies it",
+    summary:
+      "Every field of P is a value type, so P is a value type class and its instances are values: binding one from a name copies it, and writing to the copy leaves the original alone. Constructing does not copy - the result is built where it is going.",
+    code:
+      'class P { x: uint8 = 0; }\nconst a = new P();\na.x = 1;\nconst b = a;\nb.x = 9;\nconsole.log(a.x, b.x, a === b);',
+    expected: "1 (typed) 9 (typed) false",
+  },
+  {
     section: "sec-deferred-applications",
     title: "A call carried as a type",
     summary: "pairOf(T) cannot evaluate while T is unbound, so it is carried and evaluated at the specialization - which is what lets it annotate a binding inside a generic body and mean a different type at each call.",
