@@ -168,7 +168,7 @@ export const declarations: ExampleChapter = [
     section: "sec-canonical-total-order",
     title: "One member order, every spelling",
     summary: "Reflection sees the canonical order, so two spellings of one union reflect identically.",
-    code: "type U1 = string | uint8;\ntype U2 = uint8 | string;\nconst a1 = Reflect.getReflection(U1).arms;\nconst a2 = Reflect.getReflection(U2).arms;\nconsole.log(a1.length, a1[0] === a2[0], a1[1] === a2[1], a1.includes(uint8));",
+    code: "type U1 = string | uint8;\ntype U2 = uint8 | string;\nconst a1 = Reflect.getReflection(U1).members;\nconst a2 = Reflect.getReflection(U2).members;\nconsole.log(a1.length, a1[0] === a2[0], a1[1] === a2[1], a1.includes(uint8));",
     expected: "2 true true true",
   },
   {
