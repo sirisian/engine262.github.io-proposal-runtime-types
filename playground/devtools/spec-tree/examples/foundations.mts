@@ -271,4 +271,19 @@ export const foundations: ExampleChapter = [
     code: "function box() { return Reflect.makeType({ kind: \"object\", properties: [{ name: \"v\", type: type uint8 }] }); }\ntype A = box();\ntype B = box();\nconsole.log(A === B, uint8 === uint8);",
     expected: "true true",
   },
+  {
+    section: "sec-aredisjoint",
+    title: "Disjoint types have no common value; overlapping types intersect",
+    summary: "AreDisjoint is what the intersection rule asks: uint8 and string share no value, while two object types with different members are inhabited together.",
+    code: "type Both = { a: uint8 } & { b: string };\nconst v: Both = { a: 1, b: \"x\" };\nconsole.log(v.a, v.b);",
+    expected: "1 (typed) 'x'",
+  },
+  {
+    section: "sec-aredisjoint",
+    title: "Disjoint members make an intersection an error where it is written",
+    summary: "AreDisjoint answers true for uint8 and string - no value is of both - so the written intersection is refused statically, before anything runs.",
+    code: "type Nope = uint8 & string;",
+    throws: true,
+    expected: "",
+  },
 ];

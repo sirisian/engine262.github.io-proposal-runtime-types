@@ -118,4 +118,18 @@ export const classes: ExampleChapter = [
     code: "class Point { constructor() { this.v = 2; } }\npartial class Point { double() { return this.v * 2; } }\nconsole.log(new Point().double());",
     expected: "4",
   },
+  {
+    section: "sec-declared-zero",
+    title: "A class declares the value its bindings hold before assignment",
+    summary: "static default replaces the field-by-field zero; a binding annotated with the class holds that instance until it is assigned.",
+    code: "class Pt { x: uint8; y: uint8; constructor(x: uint8, y: uint8) { this.x = x; this.y = y; } static default = new Pt(1, 2); }\nlet p: Pt;\nconsole.log(p.x, p.y);",
+    expected: "1 (typed) 2 (typed)",
+  },
+  {
+    section: "sec-declared-zero",
+    title: "Without a declared zero the default is derived field by field",
+    summary: "A class that declares none is unaffected: each typed field holds its own type's default.",
+    code: "class Pt { x: uint8; y: uint8; }\nlet p: Pt;\nconsole.log(p.x, p.y);",
+    expected: "0 (typed) 0 (typed)",
+  },
 ];

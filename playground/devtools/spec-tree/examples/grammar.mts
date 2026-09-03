@@ -223,4 +223,28 @@ export const grammar: ExampleChapter = [
     code: 'const o = { m() { return this === o ? "bound" : "lost"; } };\nconsole.log(o.m.<uint8>());',
     expected: "'bound'",
   },
+  {
+    section: "sec-type-parameters-static-semantics-early-errors",
+    title: "A default may be followed only by defaults within its run",
+    summary: "E4: once a parameter of a run has a default, every later parameter of that run must have one; a parameter without one after it is a SyntaxError.",
+    code: "class C<T = uint8, U> {}",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-type-parameters-static-semantics-early-errors",
+    title: "Two adjacent packs need a boundary",
+    summary: "E1: two variadic parameters with nothing typed between them have no boundary an argument list could split at, and the declaration is a SyntaxError.",
+    code: "function f<...A, ...B>(): void {}",
+    throws: true,
+    expected: "",
+  },
+  {
+    section: "sec-intersection-type-early-errors",
+    title: "A written intersection of disjoint types is an error where it is written",
+    summary: "No value is both a uint8 and a string, so the & itself is refused rather than every later use of the empty type.",
+    code: "type Nope = uint8 & string;",
+    throws: true,
+    expected: "",
+  },
 ];

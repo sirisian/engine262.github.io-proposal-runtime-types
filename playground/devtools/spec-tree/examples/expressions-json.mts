@@ -24,7 +24,7 @@ export const expressionsAndJson: ExampleChapter = [
     title: "A generator's yield type",
     summary: "The annotation types what the generator yields, and spreading it collects those values.",
     code: "function* f(): uint8 { yield 1; yield 2; }\nconsole.log([...f()]);",
-    expected: "[1, 2]",
+    expected: "[1 (typed), 2 (typed)]",
   },
   {
     section: "sec-do-expressions",
