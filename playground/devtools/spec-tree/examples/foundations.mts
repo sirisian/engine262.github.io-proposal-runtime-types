@@ -154,6 +154,15 @@ export const foundations: ExampleChapter = [
     expected: "true '1'",
   },
   {
+    section: "sec-issubtype",
+    title: "A tuple composite reaches the variable-length shape",
+    summary:
+      "Between two composite shapes both sides are frozen, so a tuple shape is of an array shape whose element type its elements are. A bare array type stays refused: that one describes a mutable container.",
+    code:
+      "console.log(Reflect.isAssignable(type Composite.<[uint8, uint8]>, type Composite.<[].<uint8>>), Reflect.isAssignable(type Composite.<[uint8, uint8]>, type [].<uint8>));",
+    expected: "true false",
+  },
+  {
     section: "sec-array-defaults-and-stores",
     title: "A tuple's positions and its arity are both its type",
     summary: "Each position takes its own type, a position beyond the arity is not a position at all, and a method that would move a value between positions of different types is refused - the copying forms carry the shape the operation produced instead.",

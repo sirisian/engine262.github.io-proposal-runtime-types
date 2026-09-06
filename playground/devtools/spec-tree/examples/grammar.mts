@@ -156,6 +156,15 @@ export const grammar: ExampleChapter = [
     expected: "2 true",
   },
   {
+    section: "sec-function-types",
+    title: "A parameter default in the type",
+    summary:
+      "A function-type parameter may carry a default, as a tuple element may. It is evaluated once for the type and makes the parameter optional; the call site fills the skipped position with it.",
+    code:
+      "type F = (x: uint8, y: uint8 = 9) => uint8;\nconst s = Reflect.getReflection(F).signatures[0];\nlet g: F = (p, q) => p * q;\nconsole.log(s.parameters[1].optional, g(x: 2), g(2, 3));",
+    expected: "true 18 (typed) 6",
+  },
+  {
     section: "sec-type-parameters",
     title: "A parameter, inferred and explicit",
     summary: "T binds from the argument's element type, or explicitly with .<uint8>.",

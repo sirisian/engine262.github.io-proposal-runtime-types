@@ -76,6 +76,15 @@ export const functions: ExampleChapter = [
     expected: "'dC'",
   },
   {
+    section: "sec-named-arguments",
+    title: "The signature in view",
+    summary:
+      "Calling through a typed value binds against that type's signature, not the callee's own parameter list: the interface's names map the argument and its default fills the skipped position, so the function passed in may name its parameters anything.",
+    code:
+      'interface IExample { (string = "5", named: uint32); }\nfunction f(v: IExample) { return v(named: 10); }\nconsole.log(f((a, b) => b), f((a, b) => a + ":" + String(b)));',
+    expected: "10 (typed) '5:10'",
+  },
+  {
     section: "sec-sequenceassignment",
     title: "Distribution around a default",
     summary: "Naming b lets SequenceAssignment give the optional a its default instead of the argument.",

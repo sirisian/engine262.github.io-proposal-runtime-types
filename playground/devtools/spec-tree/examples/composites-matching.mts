@@ -33,6 +33,15 @@ export const compositesAndMatching: ExampleChapter = [
     expected: "true true false",
   },
   {
+    section: "sec-composite-types",
+    title: "A shape is a composite tree",
+    summary:
+      "A structural member of the shape denotes the composite type over it, so the value at that position is itself a composite - all the way down.",
+    code:
+      'type E = { host: string };\ntype S = { name: string, one: E };\nconst a = JSON.parse.<Composite.<S>>(\'{"name":"x","one":{"host":"h"}}\');\nconst b = JSON.parse.<Composite.<S>>(\'{"name":"x","one":{"host":"h"}}\');\nconsole.log(Composite.isComposite(a.one), a === b, a.one === b.one);',
+    expected: "true true true",
+  },
+  {
     section: "sec-composite-registry",
     title: "One entry per contents",
     summary: "The registry is what makes Set and Map treat equal composites as one key.",
@@ -57,6 +66,15 @@ export const compositesAndMatching: ExampleChapter = [
     title: "Composites serialize as their shape",
     code: "console.log(JSON.stringify(Composite({ x: 1 })), JSON.stringify(Composite([1, 2])));",
     expected: "'{\\\"x\\\":1}' '[1,2]'",
+  },
+  {
+    section: "sec-composite-json",
+    title: "Validated first, interned second",
+    summary:
+      "The parse coerces against the shape before it interns, so a member the type cannot hold is a TypeError rather than a silently wrapped value.",
+    code:
+      'try {\n  JSON.parse.<Composite.<{ n: uint8 }>>(\'{"n":300}\');\n  console.log("interned");\n} catch (e) {\n  console.log(e.constructor.name);\n}',
+    expected: "'TypeError'",
   },
   {
     section: "sec-composite-modifications",
@@ -146,11 +164,29 @@ export const compositesAndMatching: ExampleChapter = [
     expected: "true",
   },
   {
+    section: "sec-composite-typeobject-call",
+    title: "The conversion is the construction boundary",
+    summary:
+      "An ordinary object reaching a composite position is built into the composite the shape names, which is why the typed creation interns with the parse of the same data.",
+    code:
+      'type P = { x: uint8, inner: { y: uint8 } };\nconst built = Composite.<P>({ x: 1, inner: { y: 2 } });\nconsole.log(Composite.isComposite(built.inner), built === JSON.parse.<Composite.<P>>(\'{"x":1,"inner":{"y":2}}\'));',
+    expected: "true true",
+  },
+  {
     section: "sec-compositefromshape",
     title: "Built from a shape and its values",
     summary: "Creating at a type and creating from already-typed values reach the same interned object.",
     code: "type T = [uint8, uint8];\nconsole.log(Composite.<T>([1, 2]) === Composite([uint8(1), uint8(2)]));",
     expected: "true",
+  },
+  {
+    section: "sec-compositefromshape",
+    title: "An array shape is the variable-length case",
+    summary:
+      "Composite.<[].<T>> admits a tuple composite of any length whose elements are all T, so two parses of one document are one object.",
+    code:
+      'const t1 = JSON.parse.<Composite.<[].<uint32>>>("[1,2,3]");\nconst t2 = JSON.parse.<Composite.<[].<uint32>>>("[1,2,3]");\nconsole.log(Composite.isComposite(t1), t1 === t2, t1.length);',
+    expected: "true true 3",
   },
   {
     section: "sec-composite.iscomposite",
