@@ -146,4 +146,11 @@ export const generics: ExampleChapter = [
     throws: true,
     expected: "",
   },
+  {
+    section: "sec-constructing-a-generic-class",
+    title: "A bare construction builds a SPECIALIZATION",
+    summary: "\"The class is the type a construction yields; for a generic class, the specialization is.\" The parameters bind from the arguments, so `new Box(5 := uint8)` is a `Box.<uint8>` and never the declaration itself.",
+    code: "class Box<T> {\n  v: T;\n  constructor(x: T) { this.v = x; }\n}\nconst b = new Box(5 := uint8);\nconsole.log(Reflect.typeOf(b) === (type Box.<uint8>), Number(b.v));",
+    expected: "true 5",
+  },
 ];

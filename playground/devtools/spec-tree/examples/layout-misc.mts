@@ -270,4 +270,18 @@ export const layoutAndMisc: ExampleChapter = [
     code: "function id(T) { return T; }\ntype Q1 = id(uint8);\ntype Q2 = id(uint8);\nconsole.log(Q1 === Q2, Q1 === uint8);",
     expected: "true true",
   },
+  {
+    section: "sec-utf8-conversions",
+    title: "A string crosses into bytes and back",
+    summary: "A `string` has no layout, so one held in a fixed-width record is held as bytes. `fromUtf8` decodes any array-like of byte values, `toUtf8` encodes into a target passed as a PARAMETER and returns the count written, and `utf8Length` asks the size first.",
+    code: "let into: [8].<uint8> = [0, 0, 0, 0, 0, 0, 0, 0];\nconst written = \"Hi!\".toUtf8(into);\nlet back: [3].<uint8> = [into[0], into[1], into[2]];\nconsole.log(Number(written), \"Hi!\".utf8Length, String.fromUtf8(back));",
+    expected: "3 3 'Hi!'",
+  },
+  {
+    section: "sec-utf8-refusals",
+    title: "What the conversions refuse",
+    summary: "A value whose encoding does not fit is a TypeError and NOTHING IS WRITTEN, since a partial write would leave the front of one value and the back of another. Only well-formed text encodes, so an unpaired surrogate is refused rather than written as WTF-8.",
+    code: "let small: [1].<uint8> = [0];\ntry { \"Hi\".toUtf8(small); } catch (e) { console.log(e.constructor.name, Number(small[0])); }\nlet into: [8].<uint8> = [0, 0, 0, 0, 0, 0, 0, 0];\nconst lone = String.fromCharCode(0xD800);\ntry { lone.toUtf8(into); } catch (e) { console.log(e.constructor.name, lone.isWellFormed()); }",
+    expected: "'TypeError' 0\n'TypeError' false",
+  },
 ];

@@ -132,4 +132,11 @@ export const classes: ExampleChapter = [
     code: "class Pt { x: uint8; y: uint8; }\nlet p: Pt;\nconsole.log(p.x, p.y);",
     expected: "0 (typed) 0 (typed)",
   },
+  {
+    section: "sec-constructor-overloading",
+    title: "A class may declare more than one constructor",
+    summary: "The declarations are overloads of one construct signature set, resolved on the same terms as an overloaded call - and the annotation is what admits the set, so an unannotated body keeps the base language's Syntax Error.",
+    code: "class Box {\n  constructor(x: uint32) { this.tag = \"number\"; }\n  constructor(x: string) { this.tag = \"string\"; }\n}\nconsole.log(new Box(1 := uint32).tag, new Box(\"a\").tag);",
+    expected: "'number' 'string'",
+  },
 ];
