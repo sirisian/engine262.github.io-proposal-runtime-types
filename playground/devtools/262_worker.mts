@@ -18,7 +18,8 @@ import {
   JSStringValue,
   CreateNonEnumerableDataPropertyOrThrow,
   surroundingAgent,
-  importBundledTest262Harness,
+  bundledTest262HarnessEntries,
+  importTest262HarnessFile,
   composeModuleLoaders,
   createBuiltinModuleLoader,
   ModuleCache,
@@ -42,7 +43,24 @@ function setSnippetModules(snippets: { name: string, content: string }[]) {
   }
   installSnippets?.(snippetSources);
 }
+// Protocol methods that run or inspect user code. While the realm is still
+// being prepared (the test262 harness takes tens of seconds to import), these
+// are held in order and replayed once it is ready; everything else, the
+// enable handshakes and the execution-context announcements among them, goes
+// through at once, so the console's context selector is populated immediately
+// and an entry typed early runs as soon as the realm can take it.
+const deferredWhileRealmPrepares = new Set([
+  "Runtime.evaluate",
+  "Runtime.compileScript",
+  "Runtime.callFunctionOn",
+  "Runtime.awaitPromise",
+  "Runtime.runScript",
+  "Debugger.evaluateOnCallFrame",
+]);
+
 class WorkerInspector extends Inspector {
+  #realmPreparing = false;
+  #heldMessages: { id: unknown, method: string, params: unknown }[] = [];
   send(data: any) {
     postMessage(data);
   }
@@ -63,12 +81,27 @@ class WorkerInspector extends Inspector {
       if (method === "Debugger.engine262_setFeatures") {
         abortController.abort();
         abortController = new AbortController();
-        recreateAgent(params.features, abortController.signal);
+        this.#heldMessages = [];
+        recreateAgent(params.features, abortController.signal, this);
         this.send({ id, result: {} });
+        return;
+      }
+      if (this.#realmPreparing && deferredWhileRealmPrepares.has(method)) {
+        this.#heldMessages.push({ id, method, params });
         return;
       }
       this.onMessage(id, method, params);
     });
+  }
+  realmPreparing(preparing: boolean) {
+    this.#realmPreparing = preparing;
+    if (!preparing) {
+      const held = this.#heldMessages;
+      this.#heldMessages = [];
+      for (const { id, method, params } of held) {
+        this.onMessage(id, method, params);
+      }
+    }
   }
 }
 
@@ -76,7 +109,7 @@ const inspector = new WorkerInspector();
 console.log("engine262 worker started");
 postMessage("hello");
 
-function recreateAgent(features: string[], signal: AbortSignal) {
+function recreateAgent(features: string[], signal: AbortSignal, inspector: WorkerInspector) {
   const agent = new Agent({ features });
   setSurroundingAgent(agent);
 
@@ -192,11 +225,33 @@ function recreateAgent(features: string[], signal: AbortSignal) {
 
   if (features.includes("test262-harness")) {
     createTest262Intrinsics(realm, false, console.log);
-    importBundledTest262Harness(realm);
-    const pop = realm.pushTopContext();
-    const consoleTrace = X(Get(X(Get(realm.GlobalObject, Value("console"))) as ObjectValue, Value("trace")));
-    X(Set(realm.GlobalObject, Value("__consolePrintHandle__"), consoleTrace, Value.true));
-    pop?.();
-    boostTest262Harness(realm);
+    // One harness file per task, so the frontend's handshake and the console's
+    // other traffic interleave with the import instead of waiting behind the
+    // whole of it; evaluations are held until the harness is in place.
+    const entries = bundledTest262HarnessEntries();
+    inspector.realmPreparing(true);
+    const step = () => {
+      if (signal.aborted) {
+        return;
+      }
+      const next = entries.shift();
+      if (next) {
+        try {
+          importTest262HarnessFile(realm, next[0], next[1]);
+        } catch (error) {
+          console.error(`test262 harness file ${next[0]} failed to import`, error);
+        }
+        setTimeout(step, 0);
+        return;
+      }
+      const pop = realm.pushTopContext();
+      const consoleTrace = X(Get(X(Get(realm.GlobalObject, Value("console"))) as ObjectValue, Value("trace")));
+      X(Set(realm.GlobalObject, Value("__consolePrintHandle__"), consoleTrace, Value.true));
+      pop?.();
+      boostTest262Harness(realm);
+      inspector.realmPreparing(false);
+    };
+    signal.addEventListener("abort", () => inspector.realmPreparing(false), { once: true });
+    setTimeout(step, 0);
   }
 }
