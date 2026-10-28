@@ -49,14 +49,16 @@ function setSnippetModules(snippets: { name: string, content: string }[]) {
 // enable handshakes and the execution-context announcements among them, goes
 // through at once, so the console's context selector is populated immediately
 // and an entry typed early runs as soon as the realm can take it.
-const deferredWhileRealmPrepares = new Set([
+// A plain array: `Set` in this module is the engine's abstract operation,
+// imported above, not the global constructor.
+const deferredWhileRealmPrepares: readonly string[] = [
   "Runtime.evaluate",
   "Runtime.compileScript",
   "Runtime.callFunctionOn",
   "Runtime.awaitPromise",
   "Runtime.runScript",
   "Debugger.evaluateOnCallFrame",
-]);
+];
 
 class WorkerInspector extends Inspector {
   #realmPreparing = false;
@@ -86,7 +88,7 @@ class WorkerInspector extends Inspector {
         this.send({ id, result: {} });
         return;
       }
-      if (this.#realmPreparing && deferredWhileRealmPrepares.has(method)) {
+      if (this.#realmPreparing && deferredWhileRealmPrepares.includes(method)) {
         this.#heldMessages.push({ id, method, params });
         return;
       }
